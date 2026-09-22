@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>倒数日</title>
+<style>
+/* ============================================================
+   倒数日 · 单文件页面
+   设计语言：极简黑白灰 + 大圆角卡片 + emoji
+   全部样式集中在这里，不依赖任何外部文件
+   ============================================================ */
+
+/* ---------- 1. 全局重置 ---------- */
+*{
+  box-sizing:border-box;
+  /* 手机上点按不出现蓝色高亮块 */
+  -webkit-tap-highlight-color:transparent;
+}
+html,body{margin:0;padding:0}
+
+/* ---------- 2. 主题变量：改配色只需要动这里 ---------- */
+:root{
+  --page:#f5f5f7;          /* 页面两侧的底 */
+  --bg:#ffffff;            /* 主体背景 */
+  --card:#efefef;          /* 卡片底色 */
+  --card-hover:#e8e8ea;    /* 卡片悬停底色 */
+  --text:#111111;          /* 主文字 */
+  --muted:#8a8a8e;         /* 次要文字 */
+  --line:#e5e5ea;          /* 分隔线 */
+  --accent:#2f4f6f;        /* 点缀色：墨蓝 */
+  --accent-soft:rgba(47,79,111,.10);
+  --danger:#d64545;
+  --shadow:0 10px 26px rgba(0,0,0,.08);
+  --sheet-shadow:0 -14px 44px rgba(0,0,0,.16);
+  --r-card:22px;           /* 大圆角是这套设计的关键 */
+  --ease:cubic-bezier(.22,1,.36,1);   /* 苹果那种"冲出去再稳住"的缓动 */
+}
+/* 深色模式：只换变量，结构完全不动 */
+[data-theme="dark"]{
+  --page:#161618;
+  --bg:#000000;
+  --card:#1c1c1e;
+  --card-hover:#242427;
+  --text:#f5f5f7;
+  --muted:#8e8e93;
+  --line:#2c2c2e;
+  --accent:#8fb4d9;
+  --accent-soft:rgba(143,180,217,.14);
+  --danger:#ff6961;
+  --shadow:0 12px 30px rgba(0,0,0,.55);
+  --sheet-shadow:0 -14px 44px rgba(0,0,0,.7);
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC",
+              "Microsoft YaHei","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:var(--page);
+  color:var(--text);
+  display:flex;
+  justify-content:center;
+  min-height:100dvh;
+  -webkit-font-smoothing:antialiased;
+}
+/* 深浅色切换时颜色平滑过渡 */
+body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
+  transition:background-color .3s var(--ease),color .3s var(--ease),
+             border-color .3s var(--ease);
+}
+
+/* ---------- 3. 手机屏容器：宽屏时居中成一条手机宽度 ---------- */
+.phone{
+  position:relative;
+  width:100%;
+  max-width:430px;
+  min-height:100dvh;
+  background:var(--bg);
+}
+/* 电脑上打开时，左右描一条极淡的边，看起来像一整块手机屏 */
+@media (min-width:520px){
+  .phone{
+    box-shadow:0 0 0 1px rgba(0,0,0,.045), 0 24px 70px rgba(0,0,0,.06);
+  }
+  [data-theme="dark"] .phone{
+    box-shadow:0 0 0 1px rgba(255,255,255,.06);
+  }
+}
+
+/* ---------- 4. 顶部栏 ---------- */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:20px 20px 14px;
+  background:var(--bg);
+  /* 滚动后才出现的细分割线，由 JS 加 .scrolled */
+  box-shadow:0 0 0 0 transparent;
+  transition:box-shadow .3s var(--ease);
+}
+.topbar.scrolled{box-shadow:0 1px 0 var(--line)}
+
+/* 左上角分类切换：All ⌄ */
+.cat-btn{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:4px 6px 4px 2px;
+  border:0;
+  background:transparent;
+  color:var(--text);
+  font:inherit;
+  font-size:26px;
+  font-weight:700;
+  letter-spacing:-.5px;
+  cursor:pointer;
+  border-radius:12px;
+  transition:transform .2s var(--ease),opacity .2s var(--ease);
+}
+.cat-btn:active{transform:scale(.96);opacity:.7}
+.cat-btn svg{opacity:.35;margin-top:2px}
+
+.top-actions{display:flex;align-items:center;gap:4px}
+/* 图标按钮：统一 34x34 的点击热区 */
+.icon-btn{
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:11px;
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+  transition:background-color .2s var(--ease),transform .18s var(--ease);
+}
+.icon-btn:hover{background:var(--accent-soft)}
+.icon-btn:active{transform:scale(.9)}
+.v-line{
+  width:1px;
+  height:18px;
+  background:var(--line);
+  margin:0 6px;
+}
+
+/* ---------- 5. 分类下拉菜单 ---------- */
+.cat-menu{
+  position:absolute;
+  top:60px;
+  left:16px;
+  z-index:40;
+  min-width:160px;
+  padding:6px;
+  border-radius:18px;
+  background:var(--bg);
+  box-shadow:var(--shadow), 0 0 0 1px var(--line);
+  /* 默认收起：缩放 + 淡出，原点在左上角 */
+  transform:scale(.94) translateY(-6px);
+  transform-origin:top left;
+  opacity:0;
+  pointer-events:none;
+  transition:transform .26s var(--ease),opacity .2s var(--ease);
+}
+.cat-menu.open{
+  transform:scale(1) translateY(0);
+  opacity:1;
+  pointer-events:auto;
+}
+.cat-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  width:100%;
+  padding:10px 12px;
+  border:0;
+  border-radius:13px;
+  background:transparent;
+  color:var(--text);
+  font:inherit;
+  font-size:15px;
+  text-align:left;
+  cursor:pointer;
+  transition:background-color .18s var(--ease);
+}
+.cat-item:hover{background:var(--card)}
+.cat-item .count{font-size:13px;color:var(--muted)}
+.cat-item.active{color:var(--accent);font-weight:600}
+
+/* ---------- 6. 列表 ---------- */
+.list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:6px 16px 48px;
+}
+
+/* 一张卡片：左边 emoji，中间文字，右边大数字 */
+.card{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:86px;
+  padding:16px 20px;
+  border-radius:var(--r-card);
+  background:var(--card);
+  cursor:pointer;
+  transition:background-color .25s var(--ease),transform .25s var(--ease),
+             box-shadow .25s var(--ease);
+}
+
+/* 进场动画：淡入 + 轻微上移。用 backwards 而不是 both，
+   动画结束后不残留 transform，否则会盖住 hover 的位移 */
+.card.enter{animation:cardIn .44s var(--ease) backwards}
+@keyframes cardIn{
+  from{opacity:0;transform:translateY(14px) scale(.98)}
+  to{opacity:1;transform:none}
+}
+/* 删除时的滑出动画 */
+.card.out{
+  animation:cardOut .26s ease-in forwards;
+  pointer-events:none;
+}
+@keyframes cardOut{
+  to{opacity:0;transform:translateX(36px) scale(.96)}
+}
+
+.emoji{
+  flex:none;
+  width:34px;
+  font-size:27px;
+  line-height:1;
+  text-align:center;
+}
+.info{flex:1;min-width:0}          /* min-width:0 让长标题能正确省略 */
+.title{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+  font-size:17px;
+  font-weight:650;
+  letter-spacing:-.2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.pin-dot{flex:none;opacity:.45;display:grid;place-items:center}
+.meta{
+  margin:5px 0 0;
+  font-size:14px;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* 右侧数字块 */
+.right{
+  flex:none;
+  margin-left:auto;
+  text-align:right;
+  transition:transform .26s var(--ease),opacity .2s var(--ease);
+}
+.num{
+  font-size:30px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:-1.2px;
+  font-variant-numeric:tabular-nums;   /* 数字等宽，滚动时不会左右抖 */
+}
+.unit{
+  margin-top:5px;
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:.2px;
+}
+
+/* 悬停时浮出的两个小操作按钮（置顶 / 删除） */
+.actions{
+  position:absolute;
+  right:18px;
+  top:50%;
+  display:flex;
+  gap:6px;
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(-50%) scale(.9);
+  transition:opacity .22s var(--ease),transform .22s var(--ease);
+}
+/* 只在真有鼠标的设备上启用悬停，触屏设备走点击编辑面板 */
+@media (hover:hover) and (pointer:fine){
+  .card:hover{background:var(--card-hover);transform:translateY(-2px);box-shadow:var(--shadow)}
+  .card:hover .right{opacity:0;transform:translateX(-10px)}
+  .card:hover .actions{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1)}
+}
+.card:active{transform:scale(.985)}
+.mini{
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border:0;
+  border-radius:11px;
+  background:var(--bg);
+  color:var(--text);
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+  transition:transform .18s var(--ease),color .2s var(--ease);
+}
+.mini:hover{color:var(--accent);transform:scale(1.06)}
+.mini.del:hover{color:var(--danger)}
+
+/* 网格视图：两列小方块 */
+.list.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+.list.grid .card{
+  flex-direction:column;
+  align-items:flex-start;
+  gap:10px;
+  min-height:132px;
+  padding:16px;
+}
+.list.grid .emoji{font-size:26px}
+.list.grid .info{width:100%}
+.list.grid .title{font-size:15px}
+.list.grid .meta{font-size:12px}
+.list.grid .right{margin:auto 0 0;text-align:left}
+.list.grid .actions{display:none}     /* 网格视图里不放悬停按钮，点开编辑面板操作 */
+
+/* ---------- 7. 空状态 ---------- */
+.empty{
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  gap:14px;
+  padding:70px 40px;
+  text-align:center;
+  color:var(--muted);
+}
+.empty.show{display:flex;animation:cardIn .4s var(--ease) backwards}
+.empty h3{margin:0;font-size:16px;color:var(--text);font-weight:600}
+.empty p{margin:0;font-size:14px;line-height:1.6}
+
+/* ---------- 8. 遮罩 + 底部面板 ---------- */
+.backdrop{
+  position:fixed;
+  inset:0;
+  z-index:50;
+  background:rgba(0,0,0,.32);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .28s var(--ease);
+  -webkit-backdrop-filter:blur(2px);
+  backdrop-filter:blur(2px);
+}
+.backdrop.open{opacity:1;pointer-events:auto}
+
+.sheet{
+  position:fixed;
+  left:50%;
+  bottom:0;
+  z-index:60;
+  width:100%;
+  max-width:430px;
+  max-height:88dvh;
+  display:flex;
+  flex-direction:column;
+  border-radius:26px 26px 0 0;
+  background:var(--bg);
+  box-shadow:var(--sheet-shadow);
+  /* 收起状态：整体滑到屏幕外 */
+  transform:translateX(-50%) translateY(101%);
+  transition:transform .4s var(--ease);
+}
+.sheet.open{transform:translateX(-50%) translateY(0)}
+/* 面板顶部的小横条，暗示可以往下拖 */
+.grab{
+  flex:none;
+  width:38px;
+  height:5px;
+  margin:9px auto 0;
+  border-radius:3px;
+  background:var(--line);
+}
+.sheet-head{
+  flex:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px 6px;
+}
+.sheet-title{font-size:16px;font-weight:600}
+.text-btn{
+  border:0;
+  background:transparent;
+  font:inherit;
+  font-size:15px;
+  color:var(--muted);
+  padding:6px 4px;
+  cursor:pointer;
+  border-radius:9px;
+  transition:color .2s var(--ease),transform .16s var(--ease),opacity .2s var(--ease);
+}
+.text-btn:active{transform:scale(.94)}
+.text-btn.primary{color:var(--accent);font-weight:600}
+/* 表单没填完时保存按钮变灰且不可点 */
+.text-btn:disabled{opacity:.3;cursor:not-allowed}
+
+.sheet-body{
+  overflow-y:auto;
+  padding:6px 18px calc(24px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling:touch;
+}
+
+/* ---------- 9. 表单元素 ---------- */
+.field{margin-top:18px}
+.field.row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.label{
+  display:block;
+  margin-bottom:9px;
+  font-size:13px;
+  color:var(--muted);
+  letter-spacing:.2px;
+}
+.field.row .label{margin:0;font-size:15px;color:var(--text)}
+
+.input{
+  width:100%;
+  padding:14px 16px;
+  border:1px solid transparent;
+  border-radius:15px;
+  background:var(--card);
+  color:var(--text);
+  font:inherit;
+  font-size:16px;
+  outline:none;
+  transition:border-color .2s var(--ease),background-color .2s var(--ease);
+}
+.input:focus{border-color:var(--accent)}
+.input::placeholder{color:var(--muted)}
+/* 日期框里的日历图标在深色模式下反一下色 */
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6}
+
+.emoji-row{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding-bottom:4px;
+  scrollbar-width:none;
+}
+.emoji-row::-webkit-scrollbar{display:none}
+.emoji-opt{
+  flex:none;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border:1px solid transparent;
+  border-radius:14px;
+  background:var(--card);
+  font-size:21px;
+  cursor:pointer;
+  transition:transform .18s var(--ease),border-color .2s var(--ease);
+}
+.emoji-opt:hover{transform:translateY(-2px)}
+.emoji-opt.active{border-color:var(--accent);background:var(--accent-soft)}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  padding:9px 15px;
+  border:1px solid transparent;
+  border-radius:14px;
+  background:var(--card);
+  color:var(--text);
+  font:inherit;
+  font-size:14px;
+  cursor:pointer;
+  transition:transform .18s var(--ease),border-color .2s var(--ease),
+             background-color .2s var(--ease);
+}
+.chip:active{transform:scale(.95)}
+.chip.active{
+  border-color:var(--accent);
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-weight:600;
+}
+
+/* 开关 */
+.switch{
+  position:relative;
+  flex:none;
+  width:52px;
+  height:31px;
+  border:0;
+  border-radius:16px;
+  background:var(--card);
+  cursor:pointer;
+  padding:0;
+  transition:background-color .26s var(--ease);
+}
+.switch i{
+  position:absolute;
+  top:2.5px;
+  left:2.5px;
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 2px 5px rgba(0,0,0,.2);
+  transition:transform .3s var(--ease);
+}
+.switch[aria-checked="true"]{background:var(--accent)}
+.switch[aria-checked="true"] i{transform:translateX(21px)}
+
+.danger-btn{
+  width:100%;
+  margin-top:26px;
+  padding:15px;
+  border:0;
+  border-radius:15px;
+  background:var(--card);
+  color:var(--danger);
+  font:inherit;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform .18s var(--ease),opacity .2s var(--ease);
+}
+.danger-btn:active{transform:scale(.985)}
+
+/* 设置页里的行式按钮 */
+.set-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  padding:16px 2px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  background:transparent;
+  color:var(--text);
+  font:inherit;
+  font-size:15px;
+  cursor:pointer;
+  text-align:left;
+}
+.set-row:last-of-type{border-bottom:0}
+.set-row .hint{font-size:13px;color:var(--muted)}
+.about{
+  margin:22px 2px 0;
+  font-size:12.5px;
+  line-height:1.7;
+  color:var(--muted);
+}
+
+/* 表单顶部的实时预览 */
+.preview{
+  padding:8px 0 2px;
+  pointer-events:none;
+}
+.preview .card{background:var(--card)}
+
+/* ---------- 10. 确认弹窗 ---------- */
+.dialog{
+  position:fixed;
+  inset:0;
+  z-index:70;
+  display:grid;
+  place-items:center;
+  padding:24px;
+  background:rgba(0,0,0,.32);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .24s var(--ease);
+}
+.dialog.open{opacity:1;pointer-events:auto}
+.dialog-box{
+  width:100%;
+  max-width:300px;
+  padding:22px 20px 16px;
+  border-radius:24px;
+  background:var(--bg);
+  text-align:center;
+  /* 弹窗本身也做一个小缩放进场 */
+  transform:scale(.94);
+  transition:transform .3s var(--ease);
+}
+.dialog.open .dialog-box{transform:scale(1)}
+.dialog-box h4{margin:0;font-size:17px;font-weight:650}
+.dialog-box p{margin:8px 0 18px;font-size:13.5px;line-height:1.6;color:var(--muted)}
+.dialog-actions{display:flex;gap:10px}
+.dialog-actions button{
+  flex:1;
+  padding:12px;
+  border:0;
+  border-radius:14px;
+  background:var(--card);
+  color:var(--text);
+  font:inherit;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform .16s var(--ease);
+}
+.dialog-actions button:active{transform:scale(.96)}
+.dialog-actions .ok{background:var(--danger);color:#fff}
+
+/* ---------- 11. 轻提示 ---------- */
+.toast{
+  position:fixed;
+  left:50%;
+  top:22px;
+  z-index:90;
+  padding:11px 20px;
+  border-radius:999px;
+  background:rgba(20,20,22,.9);
+  color:#fff;
+  font-size:14px;
+  white-space:nowrap;
+  box-shadow:0 10px 26px rgba(0,0,0,.22);
+  /* 收起：上移 + 淡出 */
+  opacity:0;
+  pointer-events:none;
+  transform:translate(-50%,-16px) scale(.95);
+  transition:opacity .26s var(--ease),transform .3s var(--ease);
+}
+.toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+
+/* ---------- 12. 尊重系统的"减弱动态效果" ---------- */
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+}
+
+/* ---------- 13. 几处补丁 ---------- */
+/* 标题所在的 flex 容器本身没法做省略号，得让里面那层来做 */
+.title span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 行式设置项：文字占满剩余宽度 */
+.field.row .label{flex:1;margin-right:14px}
+/* 设置项用 div 也能有手型 */
+.set-row{cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="phone">
+
+  <!-- ===== 顶部栏 ===== -->
+  <header class="topbar" id="topbar">
+    <button class="cat-btn" id="catBtn">
+      <span id="catLabel">全部</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 10l4-4 4 4"/><path d="M8 14l4 4 4-4"/>
+      </svg>
+    </button>
+
+    <div class="top-actions">
+      <button class="icon-btn" id="addBtn" title="新建" aria-label="新建">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button class="icon-btn" id="viewBtn" title="切换视图" aria-label="切换视图">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3.5" y="3.5" width="7" height="7" rx="2.2"/>
+          <rect x="13.5" y="3.5" width="7" height="7" rx="2.2"/>
+          <rect x="3.5" y="13.5" width="7" height="7" rx="2.2"/>
+          <rect x="13.5" y="13.5" width="7" height="7" rx="2.2"/>
+        </svg>
+      </button>
+      <span class="v-line"></span>
+      <button class="icon-btn" id="setBtn" title="设置" aria-label="设置">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2 2 2 0 11-4 0 1.7 1.7 0 00-2.9-1.2l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003.1 15a2 2 0 010-4 1.7 1.7 0 001.2-2.9l-.1-.1a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 0010 4.1a2 2 0 014 0 1.7 1.7 0 002.9 1.2l.1-.1a2 2 0 112.8 2.8l-.1.1A1.7 1.7 0 0020.9 11a2 2 0 010 4z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 分类下拉 -->
+    <div class="cat-menu" id="catMenu"></div>
+  </header>
+
+  <!-- ===== 列表 ===== -->
+  <main class="list" id="list"></main>
+
+  <!-- ===== 空状态 ===== -->
+  <div class="empty" id="empty">
+    <svg width="86" height="86" viewBox="0 0 86 86" fill="none">
+      <rect x="12" y="18" width="62" height="56" rx="16" fill="var(--card)"/>
+      <rect x="25" y="10" width="6" height="16" rx="3" fill="var(--muted)" opacity=".45"/>
+      <rect x="55" y="10" width="6" height="16" rx="3" fill="var(--muted)" opacity=".45"/>
+      <circle cx="43" cy="48" r="12" stroke="var(--muted)" stroke-width="2.4" opacity=".5"/>
+      <path d="M43 42v6l4 3" stroke="var(--muted)" stroke-width="2.4"
+            stroke-linecap="round" opacity=".8"/>
+    </svg>
+    <h3>还没有记录</h3>
+    <p>点右上角的 ＋ ，<br>记下第一个你不想忘的日子</p>
+  </div>
+
+</div>
+
+<!-- ===== 遮罩 ===== -->
+<div class="backdrop" id="backdrop"></div>
+
+<!-- ===== 新建 / 编辑面板 ===== -->
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="编辑记录">
+  <div class="grab"></div>
+  <div class="sheet-head">
+    <button class="text-btn" id="cancelBtn">取消</button>
+    <span class="sheet-title" id="sheetTitle">新建记录</span>
+    <button class="text-btn primary" id="saveBtn">保存</button>
+  </div>
+
+  <div class="sheet-body">
+    <!-- 实时预览：上面选什么，这里立刻变 -->
+    <div class="preview" id="preview"></div>
+
+    <div class="field">
+      <label class="label">图标</label>
+      <div class="emoji-row" id="emojiRow"></div>
+      <input class="input" id="emojiInput" maxlength="4" placeholder="也可以直接输入一个 emoji"
+             style="margin-top:8px" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label class="label" for="titleInput">事件名称</label>
+      <input class="input" id="titleInput" placeholder="例如：期末考试" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label class="label" for="dateInput">日期</label>
+      <input class="input" id="dateInput" type="date">
+    </div>
+
+    <div class="field">
+      <label class="label">分类</label>
+      <div class="chips" id="catChips"></div>
+    </div>
+
+    <div class="field row">
+      <span class="label">每年重复（生日、纪念日）</span>
+      <button class="switch" id="repeatSwitch" role="switch" aria-checked="false"
+              aria-label="每年重复"><i></i></button>
+    </div>
+
+    <div class="field row">
+      <span class="label">置顶</span>
+      <button class="switch" id="pinSwitch" role="switch" aria-checked="false"
+              aria-label="置顶"><i></i></button>
+    </div>
+
+    <button class="danger-btn" id="deleteBtn" style="display:none">删除这条记录</button>
+  </div>
+</section>
+
+<!-- ===== 设置面板 ===== -->
+<section class="sheet" id="setSheet" role="dialog" aria-modal="true" aria-label="设置">
+  <div class="grab"></div>
+  <div class="sheet-head">
+    <span style="width:44px"></span>
+    <span class="sheet-title">设置</span>
+    <button class="text-btn primary" id="setDoneBtn">完成</button>
+  </div>
+  <div class="sheet-body">
+    <div class="set-row" id="themeRow">
+      <span>深色模式</span>
+      <button class="switch" id="themeSwitch" role="switch" aria-checked="false"
+              tabindex="-1" aria-label="深色模式"><i></i></button>
+    </div>
+    <button class="set-row" id="exportRow">
+      <span>导出数据</span><span class="hint">存成 JSON 文件</span>
+    </button>
+    <button class="set-row" id="importRow">
+      <span>导入数据</span><span class="hint">从 JSON 恢复</span>
+    </button>
+    <button class="set-row" id="resetRow">
+      <span style="color:var(--danger)">清空所有数据</span><span class="hint">不可恢复</span>
+    </button>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden>
+    <p class="about">
+      倒数日 · 单文件网页版<br>
+      所有数据只保存在这台设备的浏览器里，不会上传到任何服务器。<br>
+      共 <span id="countAll">0</span> 条记录。
+    </p>
+  </div>
+</section>
+
+<!-- ===== 二次确认弹窗 ===== -->
+<div class="dialog" id="dialog">
+  <div class="dialog-box">
+    <h4 id="dlgTitle">确认删除？</h4>
+    <p id="dlgText">删除后无法恢复。</p>
+    <div class="dialog-actions">
+      <button id="dlgCancel">取消</button>
+      <button id="dlgOk" class="ok">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 轻提示 ===== -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   1. 常量与工具
+   ============================================================ */
+
+const KEY_DATA  = 'countdown.v1';        // 数据存在浏览器的哪个键里
+const KEY_THEME = 'countdown.theme';     // 深浅色的记忆
+const KEY_VIEW  = 'countdown.view';      // 列表 / 网格的记忆
+
+const CATS = [
+  {id:'study',  name:'学习'},
+  {id:'life',   name:'生活'},
+  {id:'memory', name:'纪念日'},
+  {id:'work',   name:'工作'}
+];
+
+/* 预设 emoji，想换随时改这一行 */
+const EMOJIS = ['🎁','💖','🎂','✈️','📚','🏠','🎓','💼','🎮','🐱',
+                '☕','🌙','⭐','🍰','🎸','📝','🏆','🎉','🩺','🧧'];
+
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+/* 系统里开了"减弱动态效果"就不再播放动画 */
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* 统一的本地存储包装。
+   个别浏览器在 file:// 下会禁用 localStorage，直接读会抛错、
+   整个脚本就死了。所以这里兜一层，用不了就退回内存，页面照样能跑 */
+const store = {
+  get(key){ try{ return localStorage.getItem(key); }catch(e){ return null; } },
+  set(key, val){ try{ localStorage.setItem(key, val); }catch(e){ /* 忽略 */ } }
+};
+
+/* 把用户输入里的尖括号转义掉，避免标题里的字符把页面结构撑坏 */
+function esc(str){
+  return String(str).replace(/[&<>"']/g, c => (
+    {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]
+  ));
+}
+function uid(){
+  return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+/* 今天 0 点。所有天数都按"整天"来算，不看时分秒 */
+function todayStart(){
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+/* 把 '2026-10-10' 解析成"本地时间"的日期对象。
+   注意不能直接 new Date('2026-10-10')，那样会被当成 UTC，
+   在东八区会整体差 8 小时，跨天时算出来少一天 */
+function parseDate(str){
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function toISO(d){
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+function isLeap(y){
+  return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+}
+/* 构造日期。2 月 29 日在平年退到 2 月 28 日 */
+function makeDate(y, month, day){
+  if (month === 1 && day === 29 && !isLeap(y)) day = 28;
+  return new Date(y, month, day);
+}
+/* 两个日期相差几天（后者减前者） */
+function daysBetween(a, b){
+  return Math.round((b - a) / 86400000);
+}
+/* 显示成 26/10/10-周六 这种紧凑格式 */
+function fmtMeta(d){
+  const yy = String(d.getFullYear()).slice(2);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const week = '日一二三四五六'[d.getDay()];
+  return `${yy}/${mm}/${dd}-周${week}`;
+}
+
+/* ============================================================
+   2. 全局状态：页面运行时记在内存里的东西
+   ============================================================ */
+let items      = [];                                    // 所有记录
+let curCat     = 'all';                                 // 当前选的分类
+let curView    = store.get(KEY_VIEW) || 'list';         // 列表还是网格
+let editingId  = null;                                  // 正在编辑哪一条，null 表示新建
+let draft      = null;                                  // 编辑面板里还没保存的临时数据
+let toastTimer = null;                                  // 轻提示的定时器
+
+/* ============================================================
+   3. 核心计算
+   ============================================================ */
+
+/* 一条记录"真正要倒数的那个日期"。
+   普通记录就是它自己；每年重复的记录要换算到今年（或明年）那一天 */
+function occurrence(item){
+  const base = parseDate(item.date);
+  if (item.repeat !== 'yearly') return base;
+
+  const today = todayStart();
+  let d = makeDate(today.getFullYear(), base.getMonth(), base.getDate());
+  if (d < today) d = makeDate(today.getFullYear() + 1, base.getMonth(), base.getDate());
+  return d;
+}
+
+/* 正数＝还没到，0＝就是今天，负数＝已经过去 */
+function diffDays(item){
+  return daysBetween(todayStart(), occurrence(item));
+}
+
+/* 排序规则：置顶优先 → 未来的在前（越近越靠前）→ 过去的在后（越近越靠前） */
+function sortItems(arr){
+  return arr.slice().sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    const da = diffDays(a), db = diffDays(b);
+    const fa = da >= 0, fb = db >= 0;
+    if (fa !== fb) return fa ? -1 : 1;
+    return fa ? da - db : db - da;
+  });
+}
+
+/* ============================================================
+   4. 数据存取（localStorage）
+   ============================================================ */
+
+function loadItems(){
+  try{
+    const raw = store.get(KEY_DATA);
+    if (!raw) return seedItems();            // 第一次打开：给几条样例，界面不至于空着
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : [];
+  }catch(e){
+    console.warn('读取数据失败，已重置', e);
+    return [];
+  }
+}
+function saveItems(){
+  store.set(KEY_DATA, JSON.stringify(items));
+}
+/* 样例数据用"相对今天"的日期生成，哪天打开都好看 */
+function seedItems(){
+  const offset = n => { const d = todayStart(); d.setDate(d.getDate() + n); return toISO(d); };
+  const list = [
+    {id:uid(), title:'和老公相识', emoji:'💑', date:'2024-05-04',cat:'memory', repeat:'none',   pinned:false},
+    {id:uid(), title:'朋友生日',   emoji:'🎁', date:offset(6),   cat:'memory', repeat:'yearly', pinned:true},
+    {id:uid(), title:'期末考试',   emoji:'📚', date:offset(18),  cat:'study',  repeat:'none',   pinned:false},
+    {id:uid(), title:'生日派对',   emoji:'🎂', date:offset(31),  cat:'life',   repeat:'yearly', pinned:false},
+    {id:uid(), title:'旅行计划',   emoji:'✈️', date:offset(68),  cat:'life',   repeat:'none',   pinned:false},
+    {id:uid(), title:'开学',       emoji:'🎓', date:offset(-22), cat:'study',  repeat:'none',   pinned:false},
+    {id:uid(), title:'在一起',     emoji:'💖', date:offset(-365),cat:'memory', repeat:'yearly', pinned:false}
+  ];
+  return list;
+}
+
+/* ============================================================
+   5. 渲染
+   ============================================================ */
+
+const listEl    = $('#list');
+const emptyEl   = $('#empty');
+const topbarEl  = $('#topbar');
+
+const PIN_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+  <path d="M14.5 2.5l7 7-2.1 2.1-1.4-.7-3.6 3.6.6 3.4-2.1 2.1-6.9-6.9 2.1-2.1 3.4.6 3.6-3.6-.7-1.4z"/>
+  <path d="M7.6 15.1L3.2 19.5l1.4 1.4 4.4-4.4z"/></svg>`;
+
+const ICON_PIN = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 17v5"/><path d="M9 4h6l-1.2 6 2.7 2.6H7.5L10.2 10z"/></svg>`;
+
+const ICON_TRASH = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4 7h16"/><path d="M9.5 7V4.8h5V7"/>
+  <path d="M6.4 7l.9 12.2h9.4L17.6 7"/></svg>`;
+
+/* 一个卡片在 HTML 里长什么样 —— 列表和"实时预览"共用这一段 */
+function cardHTML(item){
+  const d    = occurrence(item);
+  const n    = daysBetween(todayStart(), d);
+  const unit = n > 0 ? '天后' : (n < 0 ? '天前' : '今天');
+  const meta = [fmtMeta(d)];
+  if (item.repeat === 'yearly') meta.push('每年');
+
+  return `<article class="card" data-id="${esc(item.id)}">
+    <div class="emoji">${esc(item.emoji || '📌')}</div>
+    <div class="info">
+      <h3 class="title">
+        ${item.pinned ? `<span class="pin-dot">${PIN_SVG}</span>` : ''}
+        <span>${esc(item.title || '未命名')}</span>
+      </h3>
+      <p class="meta">${esc(meta.join(' · '))}</p>
+    </div>
+    <div class="right">
+      <div class="num" data-n="${Math.abs(n)}">0</div>
+      <div class="unit">${unit}</div>
+    </div>
+    <div class="actions">
+      <button class="mini" data-act="pin" title="置顶" aria-label="置顶">${ICON_PIN}</button>
+      <button class="mini del" data-act="del" title="删除" aria-label="删除">${ICON_TRASH}</button>
+    </div>
+  </article>`;
+}
+
+/* 数字从 0 滚到目标值 */
+function countUp(el, to){
+  const dur = 600, t0 = performance.now();
+  function step(t){
+    const p = Math.min(1, (t - t0) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);        // 先快后慢
+    el.textContent = Math.round(to * eased);
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function hydrateNumbers(root, animate){
+  $$('.num', root).forEach(el => {
+    const to = Number(el.dataset.n) || 0;
+    if (animate && !reduceMotion) countUp(el, to);
+    else el.textContent = to;
+  });
+}
+
+/* mode: 'enter' 逐个进场 ｜ 'flip' 只做位置变化的补间 ｜ 'none' 直接铺上 */
+function render(mode = 'enter'){
+  listEl.classList.toggle('grid', curView === 'grid');
+
+  const visible = sortItems(items.filter(it => curCat === 'all' || it.cat === curCat));
+
+  /* FLIP 动画第一步：先把每张卡片"现在的位置"记下来 */
+  const before = new Map();
+  if (mode === 'flip'){
+    $$('.card', listEl).forEach(c => before.set(c.dataset.id, c.getBoundingClientRect()));
+  }
+
+  listEl.innerHTML = visible.map(cardHTML).join('');
+
+  if (mode === 'enter'){
+    $$('.card', listEl).forEach((c, i) => {
+      c.style.animationDelay = Math.min(i * 45, 400) + 'ms';   // 每条错开一点
+      c.classList.add('enter');
+    });
+  } else if (mode === 'flip'){
+    /* FLIP 动画第二步：算位移，先瞬移回原位，再补间回当前位置 */
+    $$('.card', listEl).forEach(c => {
+      const b = before.get(c.dataset.id);
+      if (!b){ c.classList.add('enter'); return; }             // 新增的卡片走淡入
+      const a = c.getBoundingClientRect();
+      const dy = b.top - a.top;
+      if (Math.abs(dy) < 0.5) return;
+      c.style.transition = 'none';
+      c.style.transform  = `translateY(${dy}px)`;
+      requestAnimationFrame(() => {
+        c.style.transition = 'transform .42s cubic-bezier(.22,1,.36,1)';
+        c.style.transform  = '';
+        c.addEventListener('transitionend', () => {
+          c.style.transition = ''; c.style.transform = '';
+        }, {once:true});
+      });
+    });
+  }
+
+  hydrateNumbers(listEl, mode === 'enter');
+  emptyEl.classList.toggle('show', visible.length === 0);
+  $('#countAll').textContent = items.length;
+}
+
+/* ============================================================
+   6. 分类下拉
+   ============================================================ */
+
+const catMenuEl = $('#catMenu');
+
+function renderCatMenu(){
+  const rows = [{id:'all', name:'全部'}, ...CATS].map(c => {
+    const n = c.id === 'all'
+      ? items.length
+      : items.filter(it => it.cat === c.id).length;
+    return `<button class="cat-item ${curCat === c.id ? 'active' : ''}" data-cat="${c.id}">
+      <span>${c.name}</span><span class="count">${n}</span>
+    </button>`;
+  });
+  catMenuEl.innerHTML = rows.join('');
+  const cur = [{id:'all', name:'全部'}, ...CATS].find(c => c.id === curCat);
+  $('#catLabel').textContent = cur ? cur.name : '全部';
+}
+function toggleCatMenu(force){
+  const open = force !== undefined ? force : !catMenuEl.classList.contains('open');
+  catMenuEl.classList.toggle('open', open);
+}
+
+/* ============================================================
+   7. 轻提示
+   ============================================================ */
+
+const toastEl = $('#toast');
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+}
+
+/* ============================================================
+   8. 底部面板
+   ============================================================ */
+
+const sheetEl    = $('#sheet');
+const setSheetEl = $('#setSheet');
+const backdropEl = $('#backdrop');
+
+function syncBackdrop(){
+  const anyOpen = sheetEl.classList.contains('open') || setSheetEl.classList.contains('open');
+  backdropEl.classList.toggle('open', anyOpen);
+}
+function closeAllSheets(){
+  sheetEl.classList.remove('open');
+  setSheetEl.classList.remove('open');
+  syncBackdrop();
+}
+
+/* ---------- 新建 / 编辑 ---------- */
+
+const titleInput  = $('#titleInput');
+const dateInput   = $('#dateInput');
+const emojiInput  = $('#emojiInput');
+const emojiRow    = $('#emojiRow');
+const catChips    = $('#catChips');
+const saveBtn     = $('#saveBtn');
+const deleteBtn   = $('#deleteBtn');
+const previewEl   = $('#preview');
+const repeatSw    = $('#repeatSwitch');
+const pinSw       = $('#pinSwitch');
+
+/* emoji 预设按钮 */
+emojiRow.innerHTML = EMOJIS.map(e =>
+  `<button class="emoji-opt" data-emoji="${e}">${e}</button>`).join('');
+/* 分类选项 */
+catChips.innerHTML = CATS.map(c =>
+  `<button class="chip" data-cat="${c.id}">${c.name}</button>`).join('');
+
+function openEditor(id){
+  editingId = id || null;
+  const it = id ? items.find(x => x.id === id) : null;
+
+  draft = it
+    ? Object.assign({}, it)
+    : {id:null, title:'', emoji:'🎁', date:toISO(todayStart()),
+       cat:CATS[0].id, repeat:'none', pinned:false};
+
+  $('#sheetTitle').textContent = it ? '编辑记录' : '新建记录';
+  titleInput.value  = draft.title;
+  dateInput.value   = draft.date;
+  emojiInput.value  = '';
+  repeatSw.setAttribute('aria-checked', draft.repeat === 'yearly');
+  pinSw.setAttribute('aria-checked', !!draft.pinned);
+  deleteBtn.style.display = it ? 'block' : 'none';
+
+  syncDraftUI();
+  toggleCatMenu(false);
+  sheetEl.classList.add('open');
+  syncBackdrop();
+  if (!it) setTimeout(() => titleInput.focus(), 320);
+}
+
+/* 把 draft 的状态同步到界面上的选中态 */
+function syncDraftUI(){
+  $$('.emoji-opt', emojiRow).forEach(b =>
+    b.classList.toggle('active', b.dataset.emoji === draft.emoji));
+  $$('.chip', catChips).forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === draft.cat));
+  updatePreview();
+  validate();
+}
+function updatePreview(){
+  previewEl.innerHTML = cardHTML({
+    id:'preview', title:draft.title, emoji:draft.emoji, date:draft.date,
+    cat:draft.cat, repeat:draft.repeat, pinned:draft.pinned
+  });
+  hydrateNumbers(previewEl, false);
+}
+/* 标题和日期都填了才让点保存 */
+function validate(){
+  const ok = draft.title.trim() !== '' && !!draft.date;
+  saveBtn.disabled = !ok;
+}
+
+/* ---------- 设置面板 ---------- */
+
+const themeSwitch = $('#themeSwitch');
+function openSettings(){
+  themeSwitch.setAttribute('aria-checked', document.documentElement.dataset.theme === 'dark');
+  setSheetEl.classList.add('open');
+  syncBackdrop();
+}
+
+/* ============================================================
+   9. 确认弹窗
+   ============================================================ */
+
+const dialogEl = $('#dialog');
+function askConfirm(title, text, okText, onOk){
+  $('#dlgTitle').textContent = title;
+  $('#dlgText').textContent  = text;
+  $('#dlgOk').textContent    = okText;
+  dialogEl.classList.add('open');
+  const ok = $('#dlgOk'), cancel = $('#dlgCancel');
+  function cleanup(){
+    dialogEl.classList.remove('open');
+    ok.removeEventListener('click', handleOk);
+    cancel.removeEventListener('click', handleCancel);
+  }
+  function handleOk(){ cleanup(); onOk(); }
+  function handleCancel(){ cleanup(); }
+  ok.addEventListener('click', handleOk);
+  cancel.addEventListener('click', handleCancel);
+}
+
+/* ============================================================
+   10. 增删改
+   ============================================================ */
+
+function saveDraft(){
+  if (saveBtn.disabled) return;
+  const data = {
+    title:  draft.title.trim(),
+    emoji:  draft.emoji || '📌',
+    date:   draft.date,
+    cat:    draft.cat,
+    repeat: draft.repeat,
+    pinned: draft.pinned
+  };
+  if (editingId){
+    const i = items.findIndex(x => x.id === editingId);
+    if (i > -1) items[i] = Object.assign({}, items[i], data);
+    toast('已更新');
+  } else {
+    items.push(Object.assign({id:uid()}, data));
+    toast('已添加');
+  }
+  saveItems();
+  closeAllSheets();
+  render('flip');
+  renderCatMenu();
+}
+
+function togglePin(id){
+  const it = items.find(x => x.id === id);
+  if (!it) return;
+  it.pinned = !it.pinned;
+  saveItems();
+  toast(it.pinned ? '已置顶' : '已取消置顶');
+  render('flip');
+}
+
+/* 先播放滑出动画，动画结束再真正删数据 */
+function removeItem(id, cardEl){
+  const it = items.find(x => x.id === id);
+  const doRemove = () => {
+    const card = cardEl || $(`.card[data-id="${id}"]`, listEl);
+    const finish = () => {
+      items = items.filter(x => x.id !== id);
+      saveItems();
+      render('flip');
+      renderCatMenu();
+      toast('已删除');
+    };
+    if (card && !reduceMotion){
+      card.classList.add('out');
+      setTimeout(finish, 240);
+    } else finish();
+  };
+  askConfirm('删除这条记录？', `「${it ? it.title : ''}」删除后无法恢复。`, '删除', doRemove);
+}
+
+/* ============================================================
+   11. 事件绑定
+   ============================================================ */
+
+/* 列表：用事件委托，卡片再多也只挂一个监听 */
+listEl.addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const id = card.dataset.id;
+  const act = e.target.closest('[data-act]');
+  if (act){
+    e.stopPropagation();
+    if (act.dataset.act === 'pin') togglePin(id);
+    else removeItem(id, card);
+    return;
+  }
+  openEditor(id);
+});
+
+/* 顶部：新增 / 切换视图 / 设置 / 分类 */
+$('#addBtn').addEventListener('click', () => openEditor(null));
+$('#viewBtn').addEventListener('click', () => {
+  curView = curView === 'list' ? 'grid' : 'list';
+  store.set(KEY_VIEW, curView);
+  render('enter');
+});
+$('#setBtn').addEventListener('click', openSettings);
+$('#catBtn').addEventListener('click', e => { e.stopPropagation(); toggleCatMenu(); });
+catMenuEl.addEventListener('click', e => {
+  const btn = e.target.closest('[data-cat]');
+  if (!btn) return;
+  curCat = btn.dataset.cat;
+  renderCatMenu();
+  toggleCatMenu(false);
+  render('enter');
+});
+/* 点空白处收起下拉 */
+document.addEventListener('click', e => {
+  if (!catMenuEl.contains(e.target)) toggleCatMenu(false);
+});
+
+/* 表单联动 */
+titleInput.addEventListener('input', () => { draft.title = titleInput.value; syncDraftUI(); });
+dateInput.addEventListener('change', () => { draft.date = dateInput.value; syncDraftUI(); });
+emojiInput.addEventListener('input', () => {
+  draft.emoji = emojiInput.value.trim() || '📌';
+  syncDraftUI();
+});
+emojiRow.addEventListener('click', e => {
+  const b = e.target.closest('[data-emoji]');
+  if (!b) return;
+  draft.emoji = b.dataset.emoji;
+  emojiInput.value = '';
+  syncDraftUI();
+});
+catChips.addEventListener('click', e => {
+  const b = e.target.closest('[data-cat]');
+  if (!b) return;
+  draft.cat = b.dataset.cat;
+  syncDraftUI();
+});
+repeatSw.addEventListener('click', () => {
+  draft.repeat = draft.repeat === 'yearly' ? 'none' : 'yearly';
+  repeatSw.setAttribute('aria-checked', draft.repeat === 'yearly');
+  syncDraftUI();
+});
+pinSw.addEventListener('click', () => {
+  draft.pinned = !draft.pinned;
+  pinSw.setAttribute('aria-checked', draft.pinned);
+  syncDraftUI();
+});
+saveBtn.addEventListener('click', saveDraft);
+$('#cancelBtn').addEventListener('click', closeAllSheets);
+deleteBtn.addEventListener('click', () => {
+  if (!editingId) return;
+  const id = editingId;
+  closeAllSheets();
+  removeItem(id, null);
+});
+backdropEl.addEventListener('click', closeAllSheets);
+
+/* 设置里的各项 */
+$('#setDoneBtn').addEventListener('click', closeAllSheets);
+$('#themeRow').addEventListener('click', toggleTheme);
+function toggleTheme(){
+  const dark = document.documentElement.dataset.theme === 'dark';
+  document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+  themeSwitch.setAttribute('aria-checked', !dark);
+  store.set(KEY_THEME, dark ? 'light' : 'dark');
+}
+$('#exportRow').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify({version:1, items}, null, 2)],
+                        {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '倒数日-备份.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('已导出 ' + items.length + ' 条');
+});
+$('#importRow').addEventListener('click', () => $('#fileInput').click());
+$('#fileInput').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      const arr = Array.isArray(data) ? data : data.items;
+      if (!Array.isArray(arr)) throw new Error('格式不对');
+      items = arr.filter(x => x && x.title && x.date)
+                 .map(x => Object.assign({id:uid(), cat:CATS[0].id,
+                                          repeat:'none', pinned:false}, x, {id:uid()}));
+      saveItems();
+      render('enter');
+      renderCatMenu();
+      closeAllSheets();
+      toast('已导入 ' + items.length + ' 条');
+    }catch(err){
+      toast('导入失败：文件格式不对');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+$('#resetRow').addEventListener('click', () => {
+  askConfirm('清空所有数据？', '所有记录都会被删除，且无法恢复。', '清空', () => {
+    items = [];
+    saveItems();
+    render('enter');
+    renderCatMenu();
+    closeAllSheets();
+    toast('已清空');
+  });
+});
+
+/* 键盘：Esc 关掉面板 */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (dialogEl.classList.contains('open')) $('#dlgCancel').click();
+  else closeAllSheets();
+});
+
+/* 滚动时顶部栏出现一条细线 */
+window.addEventListener('scroll', () => {
+  topbarEl.classList.toggle('scrolled', window.scrollY > 4);
+}, {passive:true});
+
+/* ============================================================
+   12. 启动
+   ============================================================ */
+
+document.documentElement.dataset.theme = store.get(KEY_THEME) || 'light';
+items = loadItems();
+saveItems();                 // 第一次打开时把样例数据落盘
+renderCatMenu();
+render('enter');
+
+/* 手机浏览器支持的话，点按钮时给一下震动反馈 */
+document.addEventListener('click', e => {
+  if (e.target.closest('button') && navigator.vibrate) navigator.vibrate(8);
+}, {passive:true});
+
+})();
+</script>
+</body>
+</html>

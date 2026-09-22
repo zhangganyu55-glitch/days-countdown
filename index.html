@@ -29,13 +29,21 @@ html,body{margin:0;padding:0}
   --text:#111111;          /* 主文字 */
   --muted:#8a8a8e;         /* 次要文字 */
   --line:#e5e5ea;          /* 分隔线 */
-  --accent:#2f4f6f;        /* 点缀色：墨蓝 */
-  --accent-soft:rgba(47,79,111,.10);
+  --accent:#d9809f;        /* 点缀色：淡粉 */
+  --accent-soft:rgba(217,128,159,.14);
   --danger:#d64545;
   --shadow:0 10px 26px rgba(0,0,0,.08);
   --sheet-shadow:0 -14px 44px rgba(0,0,0,.16);
   --r-card:22px;           /* 大圆角是这套设计的关键 */
   --ease:cubic-bezier(.22,1,.36,1);   /* 苹果那种"冲出去再稳住"的缓动 */
+
+  /* 下面几个是"做出厚度"用的：渐变让卡片有上下起伏，
+     内高光让它看起来是浮起来的实体，而不是一块平色 */
+  --bg-grad:linear-gradient(180deg,#ffffff 0%,#fbfbfc 55%,#f6f6f8 100%);
+  --card-grad:linear-gradient(180deg,#f8f8fa 0%,#ececef 100%);
+  --card-line:rgba(255,255,255,.85);
+  --hover-brightness:.972;
+  --track:rgba(17,17,17,.07);
 }
 /* 深色模式：只换变量，结构完全不动 */
 [data-theme="dark"]{
@@ -46,11 +54,16 @@ html,body{margin:0;padding:0}
   --text:#f5f5f7;
   --muted:#8e8e93;
   --line:#2c2c2e;
-  --accent:#8fb4d9;
-  --accent-soft:rgba(143,180,217,.14);
+  --accent:#f0a8c4;
+  --accent-soft:rgba(240,168,196,.16);
   --danger:#ff6961;
   --shadow:0 12px 30px rgba(0,0,0,.55);
   --sheet-shadow:0 -14px 44px rgba(0,0,0,.7);
+  --bg-grad:linear-gradient(180deg,#0b0b0c 0%,#000000 60%);
+  --card-grad:linear-gradient(180deg,#212124 0%,#191919 100%);
+  --card-line:rgba(255,255,255,.06);
+  --hover-brightness:1.28;
+  --track:rgba(255,255,255,.09);
 }
 
 body{
@@ -75,7 +88,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   width:100%;
   max-width:430px;
   min-height:100dvh;
-  background:var(--bg);
+  background:var(--bg-grad);
 }
 /* 电脑上打开时，左右描一条极淡的边，看起来像一整块手机屏 */
 @media (min-width:520px){
@@ -201,17 +214,17 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
 /* 一张卡片：左边 emoji，中间文字，右边大数字 */
 .card{
   position:relative;
-  display:flex;
-  align-items:center;
-  gap:14px;
-  min-height:86px;
-  padding:16px 20px;
+  padding:15px 20px 14px;
   border-radius:var(--r-card);
-  background:var(--card);
+  background:var(--card-grad);
+  /* 一层内高光 + 一层几乎看不见的外阴影 = 卡片有厚度 */
+  box-shadow:inset 0 1px 0 var(--card-line), 0 1px 2px rgba(0,0,0,.025);
   cursor:pointer;
-  transition:background-color .25s var(--ease),transform .25s var(--ease),
-             box-shadow .25s var(--ease);
+  transition:transform .25s var(--ease),box-shadow .25s var(--ease),
+             filter .25s var(--ease);
 }
+/* 卡片第一行：emoji + 文字 + 数字 */
+.card > .row{display:flex;align-items:center;gap:14px}
 
 /* 进场动画：淡入 + 轻微上移。用 backwards 而不是 both，
    动画结束后不残留 transform，否则会盖住 hover 的位移 */
@@ -251,12 +264,37 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
 }
 .pin-dot{flex:none;opacity:.45;display:grid;place-items:center}
 .meta{
+  display:flex;
+  align-items:center;
+  gap:6px;
   margin:5px 0 0;
   font-size:14px;
   color:var(--muted);
   white-space:nowrap;
+}
+.meta > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 分类色点：整套设计里唯一的彩色，只有 6px */
+.dot{
+  flex:none;
+  width:6px;
+  height:6px;
+  border-radius:50%;
+}
+
+/* 底部这条 3px 的细线是"时间推进条"：
+   还没到的日子越接近越满，已经过去的日子走得越久越满 */
+.bar{
+  height:3px;
+  margin-top:13px;
+  border-radius:2px;
+  background:var(--track);
   overflow:hidden;
-  text-overflow:ellipsis;
+}
+.bar > i{
+  display:block;
+  height:100%;
+  border-radius:2px;
+  transition:width .7s var(--ease);
 }
 
 /* 右侧数字块 */
@@ -267,10 +305,10 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   transition:transform .26s var(--ease),opacity .2s var(--ease);
 }
 .num{
-  font-size:30px;
-  font-weight:700;
+  font-size:33px;
+  font-weight:800;
   line-height:1;
-  letter-spacing:-1.2px;
+  letter-spacing:-1.4px;
   font-variant-numeric:tabular-nums;   /* 数字等宽，滚动时不会左右抖 */
 }
 .unit{
@@ -294,7 +332,12 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
 }
 /* 只在真有鼠标的设备上启用悬停，触屏设备走点击编辑面板 */
 @media (hover:hover) and (pointer:fine){
-  .card:hover{background:var(--card-hover);transform:translateY(-2px);box-shadow:var(--shadow)}
+  .card:hover{
+    /* 用亮度而不是换背景色，这样悬停有过渡、不会"啪"地跳一下 */
+    filter:brightness(var(--hover-brightness));
+    transform:translateY(-2px);
+    box-shadow:inset 0 1px 0 var(--card-line), var(--shadow);
+  }
   .card:hover .right{opacity:0;transform:translateX(-10px)}
   .card:hover .actions{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1)}
 }
@@ -321,19 +364,33 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   grid-template-columns:1fr 1fr;
   gap:12px;
 }
-.list.grid .card{
+.list.grid .card{padding:15px 16px 14px}
+.list.grid .row{
   flex-direction:column;
   align-items:flex-start;
   gap:10px;
-  min-height:132px;
-  padding:16px;
+  min-height:104px;
 }
 .list.grid .emoji{font-size:26px}
 .list.grid .info{width:100%}
 .list.grid .title{font-size:15px}
 .list.grid .meta{font-size:12px}
 .list.grid .right{margin:auto 0 0;text-align:left}
+.list.grid .bar{margin-top:10px}
 .list.grid .actions{display:none}     /* 网格视图里不放悬停按钮，点开编辑面板操作 */
+
+/* ---------- 6.5 顶部今日信息条 ---------- */
+.todaybar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:2px 20px 12px;
+  font-size:13px;
+  color:var(--muted);
+  letter-spacing:.2px;
+  animation:cardIn .5s var(--ease) backwards;
+}
 
 /* ---------- 7. 空状态 ---------- */
 .empty{
@@ -695,6 +752,12 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
     <div class="cat-menu" id="catMenu"></div>
   </header>
 
+  <!-- ===== 今日信息条 ===== -->
+  <div class="todaybar">
+    <span id="todayText">今天</span>
+    <span id="todayCount"></span>
+  </div>
+
   <!-- ===== 列表 ===== -->
   <main class="list" id="list"></main>
 
@@ -834,6 +897,16 @@ const CATS = [
   {id:'work',   name:'工作'}
 ];
 
+/* 分类色：低饱和的四种，只用在 6px 的小圆点和 3px 的细线上，
+   绝不铺满卡片，不然就不像这套极简设计该有的样子 */
+const CAT_COLORS = {
+  study : '#4a7fb5',   // 学习 · 蓝
+  life  : '#4f9d78',   // 生活 · 绿
+  memory: '#d9809f',   // 纪念日 · 粉（跟主题点缀色一致）
+  work  : '#8b7bb8'    // 工作 · 紫
+};
+function catColor(id){ return CAT_COLORS[id] || '#8a8a8e'; }
+
 /* 预设 emoji，想换随时改这一行 */
 const EMOJIS = ['🎁','💖','🎂','✈️','📚','🏠','🎓','💼','🎮','🐱',
                 '☕','🌙','⭐','🍰','🎸','📝','🏆','🎉','🩺','🧧'];
@@ -899,6 +972,12 @@ function fmtMeta(d){
   const week = '日一二三四五六'[d.getDay()];
   return `${yy}/${mm}/${dd}-周${week}`;
 }
+/* 今天的完整写法，给顶部信息条用 */
+function fmtToday(){
+  const t = todayStart();
+  const week = '日一二三四五六'[t.getDay()];
+  return `${t.getFullYear()}年${t.getMonth() + 1}月${t.getDate()}日 周${week}`;
+}
 
 /* ============================================================
    2. 全局状态：页面运行时记在内存里的东西
@@ -929,6 +1008,17 @@ function occurrence(item){
 /* 正数＝还没到，0＝就是今天，负数＝已经过去 */
 function diffDays(item){
   return daysBetween(todayStart(), occurrence(item));
+}
+
+/* 底部那条细线的长度（百分比）：
+   还没到的日子——越接近目标，条越满；
+   已经过去的日子——走过的时间越久，条越满（满一年封顶）。
+   最少留 4%，不然空条看起来像没渲染出来 */
+function progressOf(days){
+  const p = days >= 0
+    ? (365 - Math.min(days, 365)) / 365
+    : Math.min(-days, 365) / 365;
+  return Math.max(4, Math.round(p * 100));
 }
 
 /* 排序规则：置顶优先 → 未来的在前（越近越靠前）→ 过去的在后（越近越靠前） */
@@ -1000,20 +1090,27 @@ function cardHTML(item){
   const unit = n > 0 ? '天后' : (n < 0 ? '天前' : '今天');
   const meta = [fmtMeta(d)];
   if (item.repeat === 'yearly') meta.push('每年');
+  const color = catColor(item.cat);
 
   return `<article class="card" data-id="${esc(item.id)}">
-    <div class="emoji">${esc(item.emoji || '📌')}</div>
-    <div class="info">
-      <h3 class="title">
-        ${item.pinned ? `<span class="pin-dot">${PIN_SVG}</span>` : ''}
-        <span>${esc(item.title || '未命名')}</span>
-      </h3>
-      <p class="meta">${esc(meta.join(' · '))}</p>
+    <div class="row">
+      <div class="emoji">${esc(item.emoji || '📌')}</div>
+      <div class="info">
+        <h3 class="title">
+          ${item.pinned ? `<span class="pin-dot">${PIN_SVG}</span>` : ''}
+          <span>${esc(item.title || '未命名')}</span>
+        </h3>
+        <p class="meta">
+          <i class="dot" style="background:${color}"></i>
+          <span>${esc(meta.join(' · '))}</span>
+        </p>
+      </div>
+      <div class="right">
+        <div class="num" data-n="${Math.abs(n)}">0</div>
+        <div class="unit">${unit}</div>
+      </div>
     </div>
-    <div class="right">
-      <div class="num" data-n="${Math.abs(n)}">0</div>
-      <div class="unit">${unit}</div>
-    </div>
+    <div class="bar"><i style="width:${progressOf(n)}%;background:${color}"></i></div>
     <div class="actions">
       <button class="mini" data-act="pin" title="置顶" aria-label="置顶">${ICON_PIN}</button>
       <button class="mini del" data-act="del" title="删除" aria-label="删除">${ICON_TRASH}</button>
@@ -1081,6 +1178,10 @@ function render(mode = 'enter'){
 
   hydrateNumbers(listEl, mode === 'enter');
   emptyEl.classList.toggle('show', visible.length === 0);
+
+  /* 顶部信息条：今天的日期 + 一共记了几个日子 */
+  $('#todayText').textContent  = fmtToday();
+  $('#todayCount').textContent = '共 ' + items.length + ' 个日子';
   $('#countAll').textContent = items.length;
 }
 

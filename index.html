@@ -59,6 +59,7 @@ html,body{margin:0;padding:0}
   --card-shadow:0 .5px 1px rgba(120,80,100,.05), 0 10px 22px -12px rgba(190,120,150,.35);
   --card-shadow-hover:0 2px 4px rgba(120,80,100,.05), 0 18px 34px -14px rgba(190,120,150,.5);
   --glow:rgba(217,128,159,.16);   /* 顶部那层粉色光晕 */
+  --tab-bg:rgba(255,255,255,.88); /* 底部 Tab 的半透明底 */
 }
 /* 深色模式：只换变量，结构完全不动 */
 [data-theme="dark"]{
@@ -84,6 +85,7 @@ html,body{margin:0;padding:0}
   --card-shadow:0 .5px 1px rgba(0,0,0,.4), 0 12px 24px -14px rgba(0,0,0,.9);
   --card-shadow-hover:0 2px 6px rgba(0,0,0,.45), 0 20px 38px -16px rgba(0,0,0,1);
   --glow:rgba(240,168,196,.11);
+  --tab-bg:rgba(10,10,11,.76);
 }
 
 body{
@@ -170,7 +172,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
 .cat-btn:active{transform:scale(.96);opacity:.7}
 .cat-btn svg{opacity:.35;margin-top:2px}
 
-.top-actions{display:flex;align-items:center;gap:4px}
+.top-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
 /* 图标按钮：统一 34x34 的点击热区 */
 .icon-btn{
   display:grid;
@@ -791,14 +793,741 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
 .field.row .label{flex:1;margin-right:14px}
 /* 设置项用 div 也能有手型 */
 .set-row{cursor:pointer}
+
+/* ============================================================
+   14. 多页面骨架：登录页、页面切换、底部 Tab
+   ============================================================ */
+
+/* ---------- 页面容器与切换动画 ---------- */
+.pages{position:relative}
+.page{display:none;padding-bottom:96px}   /* 给底部 Tab 留位置 */
+.page.active{display:block}
+.page.active{animation:pageIn var(--t-small) var(--ease) backwards}
+.page.leave{display:block;animation:pageOut var(--t-press) ease forwards}
+@keyframes pageIn{
+  from{opacity:0;transform:translateX(14px)}
+  to{opacity:1;transform:none}
+}
+@keyframes pageOut{
+  to{opacity:0;transform:translateX(-10px)}
+}
+
+/* 子页面统一的内边距和分组标题 */
+.pad{padding:0 20px}
+.sec-title{
+  margin:22px 20px 10px;
+  font-size:12.5px;
+  font-weight:600;
+  letter-spacing:1.2px;
+  color:var(--muted);
+  text-transform:uppercase;
+}
+
+/* ---------- 顶部栏：多出来的返回键和页面标题 ---------- */
+.back-btn{
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  margin-left:-6px;
+  border:0;
+  border-radius:11px;
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+  transition:background-color var(--t-press) var(--ease),transform var(--t-press) var(--ease);
+}
+.back-btn:active{transform:scale(.9)}
+.page-title{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  margin:0;
+  font-size:16px;
+  font-weight:650;
+  letter-spacing:-.2px;
+  white-space:nowrap;
+  pointer-events:none;
+}
+[hidden]{display:none !important}
+
+/* ---------- 底部 Tab ---------- */
+.tabbar{
+  position:fixed;
+  left:50%;
+  bottom:0;
+  z-index:30;
+  transform:translateX(-50%);
+  width:100%;
+  max-width:430px;
+  display:flex;
+  gap:2px;
+  padding:8px 8px calc(10px + env(safe-area-inset-bottom));
+  background:var(--tab-bg);
+  border-top:1px solid var(--line);
+  -webkit-backdrop-filter:blur(14px);
+  backdrop-filter:blur(14px);
+  transition:background-color var(--t-small) var(--ease);
+}
+.tab{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  padding:5px 0 3px;
+  border:0;
+  border-radius:14px;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  font-size:10.5px;
+  letter-spacing:.2px;
+  cursor:pointer;
+  transition:color var(--t-press) var(--ease),transform var(--t-press) var(--ease);
+}
+.tab:active{transform:scale(.92)}
+.tab.active{color:var(--accent)}
+.tab svg{transition:transform var(--t-small) var(--ease)}
+.tab.active svg{transform:translateY(-1px) scale(1.06)}
+
+/* ---------- 登录页 ---------- */
+.login{
+  position:absolute;
+  inset:0;
+  z-index:80;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-start;
+  padding:0 32px calc(48px + env(safe-area-inset-bottom));
+  background:var(--bg-grad);
+  transition:opacity var(--t-small) var(--ease),transform var(--t-big) var(--ease-panel);
+}
+/* 表单这一块在中间，跳过按钮留在最底下 */
+.login-main{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding-top:24px;
+}
+.login.hide{
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(-14px);
+}
+/* 登录页里每一块都错开进场 */
+.stagger{animation:cardIn var(--t-big) var(--ease) backwards;animation-delay:var(--d,0ms)}
+
+.login-logo{
+  width:74px;
+  height:74px;
+  margin:0 auto 20px;
+  border-radius:22px;
+  display:grid;
+  place-items:center;
+  background:linear-gradient(160deg,#f8c3d8,#d9809f);
+  box-shadow:0 18px 34px -16px rgba(190,120,150,.7);
+  color:#fff;
+}
+.login h1{
+  margin:0 0 6px;
+  text-align:center;
+  font-size:26px;
+  font-weight:700;
+  letter-spacing:-.6px;
+}
+.login .sub{
+  margin:0 0 30px;
+  text-align:center;
+  font-size:13.5px;
+  color:var(--muted);
+  letter-spacing:.3px;
+}
+.login .field{margin-top:14px}
+.login-btn{
+  width:100%;
+  margin-top:22px;
+  padding:16px;
+  border:0;
+  border-radius:17px;
+  background:linear-gradient(160deg,#eda2bf,#d9809f);
+  color:#fff;
+  font:inherit;
+  font-size:16px;
+  font-weight:650;
+  letter-spacing:.5px;
+  cursor:pointer;
+  box-shadow:0 14px 26px -14px rgba(190,120,150,.9);
+  transition:transform var(--t-press) var(--ease),opacity var(--t-press) var(--ease);
+}
+.login-btn:active{transform:scale(.98)}
+.login-btn:disabled{opacity:.4;box-shadow:none;cursor:not-allowed}
+.login-or{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:26px 0 18px;
+  color:var(--muted);
+  font-size:12px;
+}
+.login-or::before,.login-or::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:var(--line);
+}
+.socials{display:flex;justify-content:center;gap:16px}
+.social{
+  width:52px;
+  height:52px;
+  border:0;
+  border-radius:18px;
+  background:var(--card);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition:transform var(--t-press) var(--ease),background-color var(--t-press) var(--ease);
+}
+.social:active{transform:scale(.93)}
+.skip{
+  margin-top:auto;
+  padding-top:26px;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  font-size:13px;
+  cursor:pointer;
+  transition:color var(--t-press) var(--ease);
+}
+.skip:hover{color:var(--accent)}
+
+/* ---------- 通用：分组卡片 + 行 ---------- */
+.group{
+  background:var(--card-grad);
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:
+    inset 0 .5px 0 var(--card-line),
+    0 0 0 .5px var(--card-edge),
+    var(--card-shadow);
+}
+.row-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  padding:14px 16px;
+  border:0;
+  border-bottom:1px solid var(--line);
+  background:transparent;
+  color:var(--text);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  transition:background-color var(--t-press) var(--ease);
+}
+.row-item:last-child{border-bottom:0}
+.row-item:active{background:var(--accent-soft)}
+.row-ico{
+  flex:none;
+  width:34px;
+  height:34px;
+  border-radius:11px;
+  display:grid;
+  place-items:center;
+  font-size:17px;
+  background:var(--accent-soft);
+}
+.row-main{flex:1;min-width:0}
+.row-title{font-size:15.5px;letter-spacing:-.2px}
+.row-meta{
+  margin-top:3px;
+  font-size:12.5px;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.row-badge{
+  flex:none;
+  min-width:23px;
+  height:23px;
+  padding:0 7px;
+  border-radius:12px;
+  background:var(--track);
+  color:var(--muted);
+  font-size:12px;
+  display:grid;
+  place-items:center;
+}
+.row-arrow{flex:none;color:var(--muted);opacity:.55;display:grid;place-items:center}
+
+/* 两列的分组列表（截图里那种左右并排） */
+.group.two{display:grid;grid-template-columns:1fr 1fr}
+.group.two .row-item:nth-child(odd){border-right:1px solid var(--line)}
+.group.two .row-item{border-bottom:0}
+
+/* ---------- 倒数本：横向封面卡片 ---------- */
+.books{
+  display:flex;
+  gap:12px;
+  overflow-x:auto;
+  padding:4px 20px 16px;
+  scrollbar-width:none;
+}
+.books::-webkit-scrollbar{display:none}
+.book{
+  position:relative;
+  flex:none;
+  width:116px;
+  height:152px;
+  padding:14px;
+  border:0;
+  border-radius:18px;
+  color:#fff;
+  text-align:left;
+  cursor:pointer;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  box-shadow:0 14px 26px -16px rgba(120,80,100,.75);
+  transition:transform var(--t-small) var(--ease);
+}
+.book:active{transform:scale(.96)}
+/* 封面上的斜纹，模仿布面笔记本 */
+.book::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:repeating-linear-gradient(115deg,rgba(255,255,255,.10) 0 6px,rgba(255,255,255,0) 6px 13px);
+  pointer-events:none;
+}
+.book .book-spine{
+  position:absolute;
+  left:9px;
+  top:0;
+  bottom:0;
+  width:3px;
+  background:rgba(255,255,255,.35);
+  border-radius:2px;
+}
+.book-name{font-size:15px;font-weight:650;letter-spacing:-.2px;position:relative}
+.book-count{font-size:12.5px;opacity:.9;position:relative}
+.book.add{
+  background:var(--card-grad);
+  color:var(--text);
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  text-align:center;
+  box-shadow:
+    inset 0 .5px 0 var(--card-line),
+    0 0 0 .5px var(--card-edge),
+    var(--card-shadow);
+}
+.book.add .plus{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:var(--accent);
+  color:#fff;
+}
+
+/* ---------- 日历 ---------- */
+.cal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:2px 20px 12px;
+}
+.cal-month{font-size:17px;font-weight:650;letter-spacing:-.2px}
+.cal-nav{display:flex;gap:6px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;padding:0 14px}
+.cal-dow{
+  text-align:center;
+  font-size:11.5px;
+  color:var(--muted);
+  padding:4px 0 8px;
+  letter-spacing:.5px;
+}
+.cal-day{
+  position:relative;
+  height:42px;
+  border:0;
+  border-radius:14px;
+  background:transparent;
+  color:var(--text);
+  font:inherit;
+  font-size:14px;
+  cursor:pointer;
+  transition:background-color var(--t-press) var(--ease),transform var(--t-press) var(--ease);
+}
+.cal-day:active{transform:scale(.92)}
+.cal-day.out{color:var(--muted);opacity:.4}
+.cal-day.today{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.cal-day.sel{background:var(--accent);color:#fff;font-weight:700}
+.cal-day .cal-dot{
+  position:absolute;
+  left:50%;
+  bottom:5px;
+  transform:translateX(-50%);
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  background:var(--accent);
+}
+.cal-day.sel .cal-dot{background:#fff}
+
+/* ---------- 历史上的今天 ---------- */
+.flip{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  padding:6px 0 18px;
+}
+.flip-group{display:flex;gap:3px}
+.flip-num{
+  min-width:34px;
+  padding:8px 4px;
+  border-radius:11px;
+  background:#fff;
+  color:#111;
+  font-size:24px;
+  font-weight:800;
+  text-align:center;
+  letter-spacing:-1px;
+  box-shadow:0 6px 14px -8px rgba(120,80,100,.5),0 0 0 .5px var(--card-edge);
+}
+.flip-sep{color:var(--muted);font-size:20px;font-weight:700;margin:0 2px}
+.paper{
+  margin:0 20px;
+  padding:18px 18px 20px;
+  border-radius:20px;
+  background-image:
+    linear-gradient(var(--line) 1px,transparent 1px),
+    linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:24px 24px;
+  background-color:var(--bg);
+  box-shadow:0 0 0 .5px var(--card-edge),var(--card-shadow);
+}
+.paper-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding-bottom:14px;
+  margin-bottom:4px;
+  border-bottom:1px solid var(--line);
+}
+.paper-pic{
+  flex:none;
+  width:96px;
+  height:68px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  font-size:30px;
+  background:linear-gradient(150deg,#9fc6e8,#6f9fc9);
+  color:#fff;
+}
+.paper-title{font-size:14.5px;font-weight:650;margin:0 0 6px}
+.paper-text{margin:0;font-size:12.5px;line-height:1.7;color:var(--muted)}
+.paper-row{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.paper-row:last-child{border-bottom:0;padding-bottom:0}
+.paper-key{flex:none;width:52px;font-size:13px;font-weight:650;color:var(--text)}
+.paper-val{flex:1;font-size:13.5px;line-height:1.8}
+.paper-val .dim{color:var(--muted)}
+.paper-year{flex:none;width:52px;font-size:13.5px;font-weight:700;color:var(--accent)}
+
+/* ---------- 日期计算器 ---------- */
+.seg{
+  display:flex;
+  gap:4px;
+  padding:4px;
+  border-radius:16px;
+  background:var(--track);
+  margin:0 20px 18px;
+}
+.seg button{
+  flex:1;
+  padding:10px;
+  border:0;
+  border-radius:13px;
+  background:transparent;
+  color:var(--muted);
+  font:inherit;
+  font-size:14px;
+  cursor:pointer;
+  transition:background-color var(--t-press) var(--ease),color var(--t-press) var(--ease);
+}
+.seg button.active{
+  background:var(--bg);
+  color:var(--text);
+  font-weight:600;
+  box-shadow:0 2px 6px -3px rgba(120,80,100,.4);
+}
+.result{
+  margin:6px 20px 0;
+  padding:26px 20px;
+  border-radius:22px;
+  background:var(--card-grad);
+  text-align:center;
+  box-shadow:inset 0 .5px 0 var(--card-line),0 0 0 .5px var(--card-edge),var(--card-shadow);
+}
+.result .big{
+  font-size:52px;
+  font-weight:800;
+  letter-spacing:-2px;
+  line-height:1;
+  color:var(--num);
+  font-variant-numeric:tabular-nums;
+}
+.result .cap{margin-top:10px;font-size:13px;color:var(--muted)}
+
+/* ---------- 里程碑时间轴 ---------- */
+.tl{position:relative;padding:4px 20px 4px 44px}
+.tl::before{
+  content:"";
+  position:absolute;
+  left:26px;
+  top:14px;
+  bottom:14px;
+  width:2px;
+  border-radius:1px;
+  background:var(--track);
+}
+.tl-item{position:relative;margin-bottom:14px}
+.tl-item::before{
+  content:"";
+  position:absolute;
+  left:-23px;
+  top:20px;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 0 3px var(--bg);
+}
+.tl-item.future::before{background:var(--track);box-shadow:0 0 0 3px var(--bg)}
+.tl-date{
+  margin:0 0 6px;
+  font-size:12px;
+  letter-spacing:.6px;
+  color:var(--muted);
+}
+
+/* ---------- 事件库 ---------- */
+.lib-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px}
+.lib-card{
+  padding:16px;
+  border:0;
+  border-radius:20px;
+  background:var(--card-grad);
+  color:var(--text);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:inset 0 .5px 0 var(--card-line),0 0 0 .5px var(--card-edge),var(--card-shadow);
+  transition:transform var(--t-small) var(--ease);
+}
+.lib-card:active{transform:scale(.97)}
+.lib-emoji{font-size:24px}
+.lib-name{margin:10px 0 4px;font-size:15px;font-weight:600;letter-spacing:-.2px}
+.lib-desc{font-size:12px;color:var(--muted);line-height:1.5}
+
+/* ---------- 相册 · 纸条 ---------- */
+.album-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px}
+.album-card{
+  border:0;
+  padding:0;
+  border-radius:20px;
+  overflow:hidden;
+  background:var(--card-grad);
+  color:var(--text);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:inset 0 .5px 0 var(--card-line),0 0 0 .5px var(--card-edge),var(--card-shadow);
+  transition:transform var(--t-small) var(--ease);
+}
+.album-card:active{transform:scale(.97)}
+.album-cover{
+  height:92px;
+  display:grid;
+  place-items:center;
+  font-size:34px;
+}
+.album-body{padding:11px 13px 14px}
+.album-name{font-size:14px;font-weight:600}
+.album-note{
+  margin-top:5px;
+  font-size:12px;
+  line-height:1.5;
+  color:var(--muted);
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+/* ---------- 我的 ---------- */
+.profile{display:flex;align-items:center;gap:14px;padding:8px 20px 20px}
+.avatar{
+  width:62px;
+  height:62px;
+  border-radius:22px;
+  display:grid;
+  place-items:center;
+  font-size:28px;
+  background:linear-gradient(160deg,#f8c3d8,#d9809f);
+  box-shadow:0 14px 26px -16px rgba(190,120,150,.9);
+}
+.profile h2{margin:0 0 5px;font-size:19px;font-weight:700;letter-spacing:-.3px}
+.profile p{margin:0;font-size:12.5px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 20px}
+.stat{
+  padding:14px 10px;
+  border-radius:18px;
+  background:var(--card-grad);
+  text-align:center;
+  box-shadow:inset 0 .5px 0 var(--card-line),0 0 0 .5px var(--card-edge),var(--card-shadow);
+}
+.stat b{display:block;font-size:22px;font-weight:800;color:var(--num);letter-spacing:-1px}
+.stat span{display:block;margin-top:4px;font-size:11.5px;color:var(--muted)}
+
+/* ---------- 提醒设置的选项 ---------- */
+.remind-opts{display:flex;gap:6px;flex-wrap:wrap}
+.remind-opts button{
+  padding:7px 11px;
+  border:1px solid transparent;
+  border-radius:12px;
+  background:var(--track);
+  color:var(--muted);
+  font:inherit;
+  font-size:12.5px;
+  white-space:nowrap;      /* 不许折行，挤不下就整颗换行 */
+  cursor:pointer;
+  transition:transform var(--t-press) var(--ease),border-color var(--t-press) var(--ease),
+             color var(--t-press) var(--ease);
+}
+.remind-opts button:active{transform:scale(.94)}
+.remind-opts button.active{
+  border-color:var(--accent);
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-weight:600;
+}
+
+/* ---------- 小按钮组（归档页的恢复/删除） ---------- */
+.mini-btn{
+  padding:7px 12px;
+  border:1px solid transparent;
+  border-radius:12px;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font:inherit;
+  font-size:12.5px;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform var(--t-press) var(--ease);
+}
+.mini-btn:active{transform:scale(.94)}
+.mini-btn.danger{background:var(--track);color:var(--danger)}
+
+/* ---------- 里程碑卡片 ---------- */
+.tl-card{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  padding:13px 15px;
+  border:0;
+  border-radius:18px;
+  background:var(--card-grad);
+  color:var(--text);
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:inset 0 .5px 0 var(--card-line),0 0 0 .5px var(--card-edge),var(--card-shadow);
+  transition:transform var(--t-small) var(--ease);
+}
+.tl-card:active{transform:scale(.98)}
+
+/* 计算器结果是日期时字小一号，免得撑破 */
+.result .big.date{font-size:36px;letter-spacing:-.8px}
 </style>
 </head>
 <body>
 
-<div class="phone">
+<div class="phone" id="phone">
+
+  <!-- ===== 登录页（演示用，不做真实登录） ===== -->
+  <section class="login" id="login">
+    <div class="login-main">
+    <div class="login-logo stagger" style="--d:0ms">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="18" height="16" rx="5"/>
+        <path d="M8 3v4M16 3v4M3 11h18"/>
+        <path d="M12 16.4c-.9-1.1-2.6-.6-2.6.7 0 1 1.3 2 2.6 2.8 1.3-.8 2.6-1.8 2.6-2.8 0-1.3-1.7-1.8-2.6-.7z"
+              fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <h1 class="stagger" style="--d:70ms">倒数日</h1>
+    <p class="sub stagger" style="--d:120ms">记录每一个你不想忘的日子</p>
+
+    <div class="field stagger" style="--d:180ms">
+      <label class="label" for="loginPhone">手机号</label>
+      <input class="input" id="loginPhone" inputmode="numeric" autocomplete="off"
+             placeholder="随便填，这是演示">
+    </div>
+    <div class="field stagger" style="--d:230ms">
+      <label class="label" for="loginPwd">密码</label>
+      <input class="input" id="loginPwd" type="password" autocomplete="off"
+             placeholder="随便填，这是演示">
+    </div>
+
+    <button class="login-btn stagger" id="loginBtn" style="--d:290ms" disabled>登 录</button>
+
+    <div class="login-or stagger" style="--d:340ms">或</div>
+    <div class="socials stagger" style="--d:390ms">
+      <button class="social" data-social="微信" aria-label="微信登录">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4f9d78"
+             stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+          <ellipse cx="9.6" cy="9.2" rx="6.6" ry="5.5"/>
+          <path d="M6.6 13.9L5.2 16.7l3.2-1.3"/>
+          <circle cx="7.6" cy="8.6" r=".9" fill="#4f9d78" stroke="none"/>
+          <circle cx="11.6" cy="8.6" r=".9" fill="#4f9d78" stroke="none"/>
+          <ellipse cx="15.9" cy="14.4" rx="5.3" ry="4.4"/>
+          <path d="M18.4 17.9l1.1 2.2-2.5-.9"/>
+          <circle cx="14.3" cy="14" r=".75" fill="#4f9d78" stroke="none"/>
+          <circle cx="17.7" cy="14" r=".75" fill="#4f9d78" stroke="none"/>
+        </svg>
+      </button>
+      <button class="social" data-social="Apple" aria-label="Apple 登录">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16.4 12.6c0-2.2 1.8-3.3 1.9-3.4-1-1.5-2.6-1.7-3.2-1.7-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-3-.8-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.3 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7 2-1.1 2.7-2.2c.9-1.2 1.2-2.4 1.2-2.5 0 0-2.3-.9-2.5-3.1zM14.3 5.9c.6-.8 1-1.8.9-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-.9 2.8 1 .1 2-.5 2.7-1.3z"/>
+        </svg>
+      </button>
+    </div>
+
+    </div>
+    <button class="skip stagger" id="skipBtn" style="--d:450ms">跳过，先看看 →</button>
+  </section>
 
   <!-- ===== 顶部栏 ===== -->
   <header class="topbar" id="topbar">
+    <button class="back-btn" id="backBtn" hidden aria-label="返回">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.5 5.5L8 12l6.5 6.5"/>
+      </svg>
+    </button>
     <button class="cat-btn" id="catBtn">
       <span id="catLabel">全部</span>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -806,6 +1535,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
         <path d="M8 10l4-4 4 4"/><path d="M8 14l4 4 4-4"/>
       </svg>
     </button>
+    <h1 class="page-title" id="pageTitle" hidden></h1>
 
     <div class="top-actions">
       <button class="icon-btn" id="addBtn" title="新建" aria-label="新建">
@@ -835,14 +1565,20 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
     <div class="cat-menu" id="catMenu"></div>
   </header>
 
-  <!-- ===== 今日信息条 ===== -->
+  <!-- ===== 页面容器 ===== -->
+  <main class="pages" id="pages">
+
+  <!-- ---------- 首页 ---------- -->
+  <section class="page active" id="page-home">
+
+  <!-- 今日信息条 -->
   <div class="todaybar">
     <span id="todayText">今天</span>
     <span id="todayCount"></span>
   </div>
 
-  <!-- ===== 列表 ===== -->
-  <main class="list" id="list"></main>
+  <!-- 列表 -->
+  <div class="list" id="list"></div>
 
   <!-- ===== 空状态 ===== -->
   <div class="empty" id="empty">
@@ -857,6 +1593,231 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
     <h3>还没有记录</h3>
     <p>点右上角的 ＋ ，<br>记下第一个你不想忘的日子</p>
   </div>
+
+  </section>
+
+  <!-- ---------- 倒数本 ---------- -->
+  <section class="page" id="page-books">
+    <div class="books" id="booksRow"></div>
+    <div class="pad" id="booksGroups"></div>
+    <div class="sec-title">最近的日子</div>
+    <div class="pad"><div class="group" id="booksRecent"></div></div>
+  </section>
+
+  <!-- ---------- 日历 ---------- -->
+  <section class="page" id="page-calendar">
+    <div class="cal-head">
+      <div class="cal-month" id="calMonth"></div>
+      <div class="cal-nav">
+        <button class="icon-btn" id="calPrev" aria-label="上个月">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 5.5L8 12l6.5 6.5"/></svg>
+        </button>
+        <button class="icon-btn" id="calNext" aria-label="下个月">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9.5 5.5L16 12l-6.5 6.5"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="cal-grid" id="calDow"></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="sec-title" id="calDayTitle"></div>
+    <div class="pad"><div class="group" id="calDayList"></div></div>
+  </section>
+
+  <!-- ---------- 历史上的今天 ---------- -->
+  <section class="page" id="page-today">
+    <div class="flip" id="flipDate"></div>
+    <div class="paper">
+      <div class="paper-head">
+        <div class="paper-pic">🌏</div>
+        <div>
+          <p class="paper-title" id="paperTitle">每日视野</p>
+          <p class="paper-text" id="paperText"></p>
+        </div>
+      </div>
+      <div id="paperList"></div>
+    </div>
+  </section>
+
+  <!-- ---------- 日期计算器 ---------- -->
+  <section class="page" id="page-calc">
+    <div class="seg" id="calcSeg">
+      <button class="active" data-mode="diff">相差天数</button>
+      <button data-mode="add">往后推 N 天</button>
+    </div>
+    <div class="pad">
+      <div class="field" style="margin-top:0">
+        <label class="label" for="calcA">起始日期</label>
+        <input class="input" id="calcA" type="date">
+      </div>
+      <div class="field" id="calcBField">
+        <label class="label" for="calcB">结束日期</label>
+        <input class="input" id="calcB" type="date">
+      </div>
+      <div class="field" id="calcNField" hidden>
+        <label class="label" for="calcN">往后推多少天</label>
+        <input class="input" id="calcN" inputmode="numeric" value="100">
+      </div>
+    </div>
+    <div class="result">
+      <div class="big" id="calcBig">0</div>
+      <div class="cap" id="calcCap">天</div>
+    </div>
+  </section>
+
+  <!-- ---------- 里程碑 ---------- -->
+  <section class="page" id="page-milestone">
+    <div class="sec-title">所有日子 · 按时间排</div>
+    <div class="tl" id="tlList"></div>
+  </section>
+
+  <!-- ---------- 事件库 ---------- -->
+  <section class="page" id="page-library">
+    <div class="sec-title">点一下，加进你的列表</div>
+    <div class="lib-grid" id="libGrid"></div>
+  </section>
+
+  <!-- ---------- 归档与隐藏 ---------- -->
+  <section class="page" id="page-archive">
+    <div class="sec-title">隐藏起来的日子</div>
+    <div class="pad"><div class="group" id="archiveList"></div></div>
+  </section>
+
+  <!-- ---------- 强提醒 ---------- -->
+  <section class="page" id="page-remind">
+    <div class="sec-title">提前多久提醒你</div>
+    <div class="pad"><div class="group" id="remindList"></div></div>
+  </section>
+
+  <!-- ---------- 相册 · 纸条 ---------- -->
+  <section class="page" id="page-album">
+    <div class="sec-title">相册 · 纸条</div>
+    <div class="album-grid" id="albumGrid"></div>
+  </section>
+
+  <!-- ---------- 更多 ---------- -->
+  <section class="page" id="page-more">
+    <div class="sec-title">更多功能</div>
+    <div class="pad" id="moreGroups"></div>
+    <div class="sec-title">关于</div>
+    <div class="pad">
+      <div class="group">
+        <div class="row-item" style="cursor:default">
+          <div class="row-ico">✨</div>
+          <div class="row-main">
+            <div class="row-title">高级版</div>
+            <div class="row-meta">这个演示版里所有功能都已经开放</div>
+          </div>
+          <div class="row-badge">Pro</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- 我的 ---------- -->
+  <section class="page" id="page-me">
+    <div class="profile">
+      <div class="avatar">🐰</div>
+      <div>
+        <h2 id="meName">张甘雨</h2>
+        <p id="meSub">记录每一个不想忘的日子</p>
+      </div>
+    </div>
+
+    <div class="stats" id="meStats"></div>
+
+    <div class="sec-title">偏好</div>
+    <div class="pad">
+      <div class="group">
+        <div class="row-item" id="meThemeRow">
+          <div class="row-ico">🌙</div>
+          <div class="row-main"><div class="row-title">深色模式</div></div>
+          <button class="switch" id="themeSwitch2" role="switch" aria-checked="false"
+                  tabindex="-1" aria-label="深色模式"><i></i></button>
+        </div>
+        <button class="row-item" data-go="archive">
+          <div class="row-ico">📦</div>
+          <div class="row-main"><div class="row-title">归档与隐藏</div></div>
+          <div class="row-arrow">›</div>
+        </button>
+        <button class="row-item" data-go="remind">
+          <div class="row-ico">⏰</div>
+          <div class="row-main"><div class="row-title">强提醒</div></div>
+          <div class="row-arrow">›</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="sec-title">数据</div>
+    <div class="pad">
+      <div class="group">
+        <button class="row-item" id="meExport">
+          <div class="row-ico">⬆️</div>
+          <div class="row-main"><div class="row-title">导出数据</div>
+            <div class="row-meta">存成 JSON 文件</div></div>
+        </button>
+        <button class="row-item" id="meImport">
+          <div class="row-ico">⬇️</div>
+          <div class="row-main"><div class="row-title">导入数据</div>
+            <div class="row-meta">从 JSON 文件恢复</div></div>
+        </button>
+        <button class="row-item" id="meReset">
+          <div class="row-ico">🧹</div>
+          <div class="row-main"><div class="row-title" style="color:var(--danger)">清空所有数据</div></div>
+        </button>
+        <button class="row-item" id="meLogout">
+          <div class="row-ico">🚪</div>
+          <div class="row-main"><div class="row-title">退出登录</div>
+            <div class="row-meta">回到登录页</div></div>
+        </button>
+      </div>
+    </div>
+    <p class="about" style="padding:0 20px 24px">
+      倒数日 · 单文件网页版<br>
+      所有数据只保存在这台设备的浏览器里，不会上传到任何服务器。
+    </p>
+  </section>
+
+  </main>
+
+  <!-- ===== 底部 Tab ===== -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab active" data-tab="home">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="5" width="18" height="16" rx="5"/><path d="M8 3v4M16 3v4M3 11h18"/>
+      </svg>
+      <span>倒数日</span>
+    </button>
+    <button class="tab" data-tab="calendar">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="4.5"/>
+        <path d="M7.6 9.6h.01M12 9.6h.01M16.4 9.6h.01M7.6 14h.01M12 14h.01M16.4 14h.01"
+              stroke-width="2.4"/>
+      </svg>
+      <span>日历</span>
+    </button>
+    <button class="tab" data-tab="more">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="5.2" cy="12" r="1.7" fill="currentColor"/>
+        <circle cx="12" cy="12" r="1.7" fill="currentColor"/>
+        <circle cx="18.8" cy="12" r="1.7" fill="currentColor"/>
+      </svg>
+      <span>更多</span>
+    </button>
+    <button class="tab" data-tab="me">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8.6" r="3.6"/>
+        <path d="M4.9 20c.7-3.6 3.7-5.6 7.1-5.6s6.4 2 7.1 5.6"/>
+      </svg>
+      <span>我的</span>
+    </button>
+  </nav>
 
 </div>
 
@@ -898,6 +1859,11 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
       <div class="chips" id="catChips"></div>
     </div>
 
+    <div class="field">
+      <label class="label" for="noteInput">纸条（会显示在相册里）</label>
+      <input class="input" id="noteInput" placeholder="写一句就好" autocomplete="off">
+    </div>
+
     <div class="field row">
       <span class="label">每年重复（生日、纪念日）</span>
       <button class="switch" id="repeatSwitch" role="switch" aria-checked="false"
@@ -908,6 +1874,12 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
       <span class="label">置顶</span>
       <button class="switch" id="pinSwitch" role="switch" aria-checked="false"
               aria-label="置顶"><i></i></button>
+    </div>
+
+    <div class="field row">
+      <span class="label">隐藏（收进归档里）</span>
+      <button class="switch" id="hideSwitch" role="switch" aria-checked="false"
+              aria-label="隐藏"><i></i></button>
     </div>
 
     <button class="danger-btn" id="deleteBtn" style="display:none">删除这条记录</button>
@@ -1146,10 +2118,14 @@ function saveItems(){
 function seedItems(){
   const offset = n => { const d = todayStart(); d.setDate(d.getDate() + n); return toISO(d); };
   const list = [
-    {id:uid(), title:'和老公相识', emoji:'💑', date:'2024-05-04',cat:'memory', repeat:'none',   pinned:false},
-    {id:uid(), title:'生日',       emoji:'🎂', date:'2005-01-15',cat:'memory', repeat:'yearly', pinned:true},
-    {id:uid(), title:'旅行计划',   emoji:'✈️', date:offset(68),  cat:'life',   repeat:'none',   pinned:false},
-    {id:uid(), title:'开学',       emoji:'🎓', date:offset(-22), cat:'study',  repeat:'none',   pinned:false}
+    {id:uid(), title:'和老公相识', emoji:'💑', date:'2024-05-04',cat:'memory', repeat:'none',
+     pinned:false, note:'一周年那天去看了海', archived:false, remind:-1},
+    {id:uid(), title:'生日',       emoji:'🎂', date:'2005-01-15',cat:'memory', repeat:'yearly',
+     pinned:true,  note:'每年都要好好过',     archived:false, remind:3},
+    {id:uid(), title:'旅行计划',   emoji:'✈️', date:offset(68),  cat:'life',   repeat:'none',
+     pinned:false, note:'想去的地方先记下来', archived:false, remind:7},
+    {id:uid(), title:'开学',       emoji:'🎓', date:offset(-22), cat:'study',  repeat:'none',
+     pinned:false, note:'新学期开始',         archived:false, remind:-1}
   ];
   return list;
 }
@@ -1266,7 +2242,9 @@ function captureRects(exceptEl){
 function render(mode = 'enter', rectsBefore){
   listEl.classList.toggle('grid', curView === 'grid');
 
-  const visible = sortItems(items.filter(it => curCat === 'all' || it.cat === curCat));
+  /* 隐藏（归档）的记录不出现在首页 */
+  const visible = sortItems(items.filter(it => !it.archived &&
+                                               (curCat === 'all' || it.cat === curCat)));
 
   /* FLIP 动画第一步：先把每张卡片"现在的位置"记下来 */
   const before = rectsBefore || new Map();
@@ -1308,7 +2286,7 @@ function render(mode = 'enter', rectsBefore){
 
   /* 顶部信息条：今天的日期 + 一共记了几个日子 */
   $('#todayText').textContent  = fmtToday();
-  $('#todayCount').textContent = '共 ' + items.length + ' 个日子';
+  $('#todayCount').textContent = '共 ' + items.filter(it => !it.archived).length + ' 个日子';
   $('#countAll').textContent = items.length;
 }
 
@@ -1320,9 +2298,10 @@ const catMenuEl = $('#catMenu');
 
 function renderCatMenu(){
   const rows = [{id:'all', name:'全部'}, ...CATS].map(c => {
+    const live = items.filter(it => !it.archived);
     const n = c.id === 'all'
-      ? items.length
-      : items.filter(it => it.cat === c.id).length;
+      ? live.length
+      : live.filter(it => it.cat === c.id).length;
     return `<button class="cat-item ${curCat === c.id ? 'active' : ''}" data-cat="${c.id}">
       <span>${c.name}</span><span class="count">${n}</span>
     </button>`;
@@ -1371,6 +2350,7 @@ function closeAllSheets(){
 const titleInput  = $('#titleInput');
 const dateInput   = $('#dateInput');
 const emojiInput  = $('#emojiInput');
+const noteInput   = $('#noteInput');
 const emojiRow    = $('#emojiRow');
 const catChips    = $('#catChips');
 const saveBtn     = $('#saveBtn');
@@ -1378,6 +2358,7 @@ const deleteBtn   = $('#deleteBtn');
 const previewEl   = $('#preview');
 const repeatSw    = $('#repeatSwitch');
 const pinSw       = $('#pinSwitch');
+const hideSw      = $('#hideSwitch');
 
 /* emoji 预设按钮 */
 emojiRow.innerHTML = EMOJIS.map(e =>
@@ -1399,8 +2380,10 @@ function openEditor(id){
   titleInput.value  = draft.title;
   dateInput.value   = draft.date;
   emojiInput.value  = '';
+  noteInput.value   = draft.note || '';
   repeatSw.setAttribute('aria-checked', draft.repeat === 'yearly');
   pinSw.setAttribute('aria-checked', !!draft.pinned);
+  hideSw.setAttribute('aria-checked', !!draft.archived);
   deleteBtn.style.display = it ? 'block' : 'none';
 
   syncDraftUI();
@@ -1475,7 +2458,9 @@ function saveDraft(){
     date:   draft.date,
     cat:    draft.cat,
     repeat: draft.repeat,
-    pinned: draft.pinned
+    pinned: draft.pinned,
+    note:   (draft.note || '').trim(),
+    archived: !!draft.archived
   };
   if (editingId){
     const i = items.findIndex(x => x.id === editingId);
@@ -1604,6 +2589,7 @@ document.addEventListener('click', e => {
 /* 表单联动 */
 titleInput.addEventListener('input', () => { draft.title = titleInput.value; syncDraftUI(); });
 dateInput.addEventListener('change', () => { draft.date = dateInput.value; syncDraftUI(); });
+noteInput.addEventListener('input', () => { draft.note = noteInput.value; });
 emojiInput.addEventListener('input', () => {
   draft.emoji = emojiInput.value.trim() || '📌';
   syncDraftUI();
@@ -1631,6 +2617,10 @@ pinSw.addEventListener('click', () => {
   pinSw.setAttribute('aria-checked', draft.pinned);
   syncDraftUI();
 });
+hideSw.addEventListener('click', () => {
+  draft.archived = !draft.archived;
+  hideSw.setAttribute('aria-checked', draft.archived);
+});
 saveBtn.addEventListener('click', saveDraft);
 $('#cancelBtn').addEventListener('click', closeAllSheets);
 deleteBtn.addEventListener('click', () => {
@@ -1647,10 +2637,12 @@ $('#themeRow').addEventListener('click', toggleTheme);
 function toggleTheme(){
   const dark = document.documentElement.dataset.theme === 'dark';
   document.documentElement.dataset.theme = dark ? 'light' : 'dark';
-  themeSwitch.setAttribute('aria-checked', !dark);
   store.set(KEY_THEME, dark ? 'light' : 'dark');
+  syncThemeSwitches();
 }
-$('#exportRow').addEventListener('click', () => {
+/* 导出、导入、清空这三个动作，首页齿轮和「我的」页面里都有入口，
+   所以抽成函数，两个地方绑同一个 */
+function doExport(){
   const blob = new Blob([JSON.stringify({version:1, items}, null, 2)],
                         {type:'application/json'});
   const a = document.createElement('a');
@@ -1659,8 +2651,24 @@ $('#exportRow').addEventListener('click', () => {
   a.click();
   URL.revokeObjectURL(a.href);
   toast('已导出 ' + items.length + ' 条');
-});
+}
+function doReset(){
+  askConfirm('清空所有数据？', '所有记录都会被删除，且无法恢复。', '清空', () => {
+    items = [];
+    saveItems();
+    renderCatMenu();
+    closeAllSheets();
+    renderPage(curPage);
+    toast('已清空');
+  });
+}
+$('#exportRow').addEventListener('click', doExport);
 $('#importRow').addEventListener('click', () => $('#fileInput').click());
+$('#meExport').addEventListener('click', doExport);
+$('#meImport').addEventListener('click', () => $('#fileInput').click());
+$('#meReset').addEventListener('click', doReset);
+$('#meLogout').addEventListener('click', logout);
+$('#meThemeRow').addEventListener('click', toggleTheme);
 $('#fileInput').addEventListener('change', e => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
@@ -1685,16 +2693,7 @@ $('#fileInput').addEventListener('change', e => {
   reader.readAsText(file);
   e.target.value = '';
 });
-$('#resetRow').addEventListener('click', () => {
-  askConfirm('清空所有数据？', '所有记录都会被删除，且无法恢复。', '清空', () => {
-    items = [];
-    saveItems();
-    render('enter');
-    renderCatMenu();
-    closeAllSheets();
-    toast('已清空');
-  });
-});
+$('#resetRow').addEventListener('click', doReset);
 
 /* 键盘：Esc 关掉面板 */
 document.addEventListener('keydown', e => {
@@ -1709,8 +2708,326 @@ window.addEventListener('scroll', () => {
 }, {passive:true});
 
 /* ============================================================
-   12. 启动
+   12. 多页面：路由、登录、各页面渲染
    ============================================================ */
+
+/* 底部四个 Tab，以及每个页面的标题 */
+const TABS = ['home', 'calendar', 'more', 'me'];
+const PAGE_TITLES = {
+  home:'', books:'倒数本', calendar:'日历', today:'历史上的今天',
+  calc:'日期计算器', milestone:'里程碑', library:'事件库',
+  archive:'归档与隐藏', remind:'强提醒', album:'相册 · 纸条',
+  more:'更多', me:'我的'
+};
+
+let curPage = 'home';     // 当前在哪个页面
+let lastTab = 'home';     // 最近一次待过的 Tab 页，返回键回到这里
+
+/* 把地址栏的 #/xxx 翻译成页面名 */
+function pageFromHash(){
+  const id = (location.hash || '').replace(/^#\/?/, '') || 'home';
+  return $('#page-' + id) ? id : 'home';
+}
+/* 切页面 = 改地址栏，真正的切换交给 hashchange 处理，
+   这样浏览器自带的前进后退按钮也能用 */
+function navigate(page){ location.hash = '#/' + page; }
+
+function switchPage(page){
+  if (page === curPage){ syncChrome(); return; }
+  const prev = $('#page-' + curPage);
+  const next = $('#page-' + page);
+
+  const commit = () => {
+    prev.classList.remove('active', 'leave');
+    next.classList.add('active');
+    curPage = page;
+    if (TABS.indexOf(page) > -1) lastTab = page;
+    syncChrome();
+    renderPage(page);
+    window.scrollTo(0, 0);
+  };
+
+  if (reduceMotion){ commit(); return; }
+  prev.classList.add('leave');       // 旧页快速淡出，随后新页滑进来
+  setTimeout(commit, 150);
+}
+
+/* 顶部栏和底部 Tab 跟着当前页面变 */
+function syncChrome(){
+  const isHome = curPage === 'home';
+  const isTab  = TABS.indexOf(curPage) > -1;
+  $('#catBtn').hidden   = !isHome;
+  $('#backBtn').hidden  = isHome || isTab;
+  $('#addBtn').hidden   = !isHome;
+  $('#viewBtn').hidden  = !isHome;
+  const t = $('#pageTitle');
+  t.hidden = isHome;
+  t.textContent = PAGE_TITLES[curPage] || '';
+  $$('.tab').forEach(b => b.classList.toggle('active', b.dataset.tab === curPage));
+  document.title = isHome ? '倒数日' : (PAGE_TITLES[curPage] + ' · 倒数日');
+  syncThemeSwitches();
+}
+
+function renderPage(page){
+  if (page === 'home')            render('enter');
+  else if (page === 'books')      renderBooks();
+  else if (page === 'calendar')   renderCalendar();
+  else if (page === 'today')      renderToday();
+  else if (page === 'calc')       renderCalc();
+  else if (page === 'milestone')  renderMilestone();
+  else if (page === 'library')    renderLibrary();
+  else if (page === 'archive')    renderArchive();
+  else if (page === 'remind')     renderRemind();
+  else if (page === 'album')      renderAlbum();
+  else if (page === 'more')       renderMore();
+  else if (page === 'me')         renderMe();
+}
+
+function initRouter(){
+  curPage = pageFromHash();
+  if (TABS.indexOf(curPage) > -1) lastTab = curPage;
+  $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + curPage));
+  if (curPage !== 'home') renderPage(curPage);
+  syncChrome();
+  window.addEventListener('hashchange', () => switchPage(pageFromHash()));
+}
+
+/* 返回键：回到最近一次待过的 Tab 页 */
+$('#backBtn').addEventListener('click', () => navigate(lastTab));
+
+/* 底部 Tab */
+$('#tabbar').addEventListener('click', e => {
+  const b = e.target.closest('.tab');
+  if (b) navigate(b.dataset.tab);
+});
+
+/* 页面上所有 data-go 的跳转都走这一个委托 */
+document.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go){ navigate(go.dataset.go); return; }
+
+  const lib = e.target.closest('[data-lib]');
+  if (lib){ addFromLibrary(Number(lib.dataset.lib)); return; }
+
+  const nw = e.target.closest('[data-new]');
+  if (nw){ openEditor(null); return; }
+
+  const back = e.target.closest('[data-restore]');
+  if (back){ restoreItem(back.dataset.restore); return; }
+
+  const rem = e.target.closest('[data-remind]');
+  if (rem){ setRemind(rem.dataset.id, Number(rem.dataset.remind)); return; }
+
+  const edit = e.target.closest('[data-edit]');
+  if (edit){ openEditor(edit.dataset.id); return; }
+
+  const cat = e.target.closest('[data-gocat]');
+  if (cat){ curCat = cat.dataset.gocat; renderCatMenu(); navigate('home'); return; }
+});
+
+/* ---------- 小工具 ---------- */
+/* "还有 115 天" 这种一句话 */
+function metaOf(it){
+  const n = diffDays(it);
+  if (n > 0) return '还有 ' + n + ' 天';
+  if (n < 0) return '已经 ' + (-n) + ' 天';
+  return '就是今天';
+}
+/* 一行"事件"样式，日历、里程碑、最近记录都用它 */
+function rowOf(it, extra){
+  return `<button class="row-item" data-edit="1" data-id="${esc(it.id)}">
+    <div class="row-ico">${esc(it.emoji || '📌')}</div>
+    <div class="row-main">
+      <div class="row-title">${esc(it.title)}</div>
+      <div class="row-meta">${esc(extra || (fmtMeta(occurrence(it)) + ' · ' + metaOf(it)))}</div>
+    </div>
+    <div class="row-badge">${Math.abs(diffDays(it))}</div>
+  </button>`;
+}
+const EMPTY_ROW = `<div class="row-item" style="cursor:default">
+  <div class="row-main"><div class="row-meta">这里还是空的</div></div>
+</div>`;
+
+/* ---------- 登录页（演示用，不做真实登录） ---------- */
+const KEY_LOGIN = 'countdown.login';
+
+function initLogin(){
+  const login = $('#login');
+  if (store.get(KEY_LOGIN) === '1') login.classList.add('hide');
+
+  const phone = $('#loginPhone'), pwd = $('#loginPwd'), btn = $('#loginBtn');
+  const check = () => { btn.disabled = !(phone.value.trim() && pwd.value.trim()); };
+  phone.addEventListener('input', check);
+  pwd.addEventListener('input', check);
+  btn.addEventListener('click', doLogin);
+  pwd.addEventListener('keydown', e => { if (e.key === 'Enter' && !btn.disabled) doLogin(); });
+  $('#skipBtn').addEventListener('click', enterApp);
+  $$('.social').forEach(b => b.addEventListener('click', () =>
+    toast(b.dataset.social + '登录只是摆设，随便填就能进')));
+}
+
+function doLogin(){
+  const btn = $('#loginBtn');
+  btn.disabled = true;
+  btn.textContent = '登录中…';
+  /* 故意等一下，让它看起来像真的在请求 */
+  setTimeout(() => { btn.textContent = '登 录'; enterApp(); }, 650);
+}
+
+function enterApp(){
+  store.set(KEY_LOGIN, '1');
+  $('#login').classList.add('hide');
+  if (curPage === 'home') render('enter');
+  toast('欢迎回来');
+}
+
+function logout(){
+  store.set(KEY_LOGIN, '');
+  $('#loginPwd').value = '';
+  $('#loginBtn').disabled = true;
+  $('#login').classList.remove('hide');
+  navigate('home');
+}
+
+/* ============================================================
+   13. 各页面怎么渲染
+   ============================================================ */
+
+/* ---------- 倒数本 ---------- */
+const CAT_GRADS = {
+  study : 'linear-gradient(160deg,#cba9dd,#a978c4)',
+  life  : 'linear-gradient(160deg,#f3b5a6,#e0827a)',
+  memory: 'linear-gradient(160deg,#f4aac6,#d9809f)',
+  work  : 'linear-gradient(160deg,#d3a8bf,#b07f9d)'
+};
+
+function renderBooks(){
+  const live = items.filter(it => !it.archived);
+
+  $('#booksRow').innerHTML =
+    `<button class="book add" data-new="1">
+       <span class="plus">
+         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+       </span>
+       <span class="book-count">添加新倒数本</span>
+     </button>` +
+    CATS.map(c => {
+      const n = live.filter(it => it.cat === c.id).length;
+      return `<button class="book" data-gocat="${c.id}" style="background:${CAT_GRADS[c.id]}">
+        <span class="book-spine"></span>
+        <span class="book-name">${c.name}</span>
+        <span class="book-count">${n} 个</span>
+      </button>`;
+    }).join('');
+
+  $('#booksGroups').innerHTML = `
+    <div class="group two" style="margin-bottom:14px">
+      <button class="row-item" data-go="home">
+        <div class="row-ico">🌍</div>
+        <div class="row-main"><div class="row-title">全部</div></div>
+        <div class="row-badge">${live.length}</div>
+      </button>
+      <button class="row-item" data-go="calendar">
+        <div class="row-ico">📅</div>
+        <div class="row-main"><div class="row-title">日历</div></div>
+        <div class="row-arrow">›</div>
+      </button>
+    </div>
+    <div class="group two" style="margin-bottom:14px">
+      <button class="row-item" data-go="album">
+        <div class="row-ico">🖼️</div>
+        <div class="row-main"><div class="row-title">相册</div></div>
+      </button>
+      <button class="row-item" data-go="album">
+        <div class="row-ico">📝</div>
+        <div class="row-main"><div class="row-title">纸条</div></div>
+      </button>
+    </div>
+    <div class="group">
+      ${CATS.map(c => {
+        const n = live.filter(it => it.cat === c.id).length;
+        const first = sortItems(live.filter(it => it.cat === c.id))[0];
+        return `<button class="row-item" data-gocat="${c.id}">
+          <div class="row-ico">${c.id === 'study' ? '📚' : c.id === 'life' ? '🏠' : c.id === 'memory' ? '💖' : '💼'}</div>
+          <div class="row-main">
+            <div class="row-title">${c.name}</div>
+            ${first ? `<div class="row-meta">${esc(first.title)} · ${metaOf(first)}</div>` : ''}
+          </div>
+          <div class="row-badge">${n}</div>
+        </button>`;
+      }).join('')}
+    </div>`;
+
+  const recent = sortItems(live)[0];
+  $('#booksRecent').innerHTML = recent
+    ? rowOf(recent)
+    : `<div class="row-item" style="cursor:default">
+         <div class="row-main"><div class="row-meta">还没有记录，点右上角 ＋ 加一个</div></div>
+       </div>`;
+}
+
+/* ---------- 日历 ---------- */
+let calCursor = null;   // 当前显示的月份
+let calSel = null;      // 选中的那一天
+
+function renderCalendar(){
+  const today = todayStart();
+  if (!calCursor) calCursor = new Date(today.getFullYear(), today.getMonth(), 1);
+  if (!calSel)    calSel = today;
+
+  const y = calCursor.getFullYear(), m = calCursor.getMonth();
+  $('#calMonth').textContent = y + ' 年 ' + (m + 1) + ' 月';
+
+  $('#calDow').innerHTML = ['日','一','二','三','四','五','六']
+    .map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  /* 从当月 1 号所在星期的星期日开始，固定铺 6 行 = 42 格 */
+  const first = new Date(y, m, 1);
+  const start = new Date(y, m, 1 - first.getDay());
+  const marked = items.filter(it => !it.archived)
+                      .map(it => toISO(occurrence(it)));
+
+  let cells = '';
+  for (let i = 0; i < 42; i++){
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const iso = toISO(d);
+    const cls = [
+      'cal-day',
+      d.getMonth() === m ? '' : 'out',
+      d.getTime() === today.getTime() ? 'today' : '',
+      d.getTime() === calSel.getTime() ? 'sel' : ''
+    ].join(' ');
+    cells += `<button class="${cls}" data-calday="${iso}">${d.getDate()}` +
+             (marked.indexOf(iso) > -1 ? '<i class="cal-dot"></i>' : '') + '</button>';
+  }
+  $('#calGrid').innerHTML = cells;
+
+  /* 下面列出选中那天的事件 */
+  const selIso = toISO(calSel);
+  const list = items.filter(it => !it.archived && toISO(occurrence(it)) === selIso);
+  $('#calDayTitle').textContent = (calSel.getMonth() + 1) + ' 月 ' + calSel.getDate() + ' 日';
+  $('#calDayList').innerHTML = list.length
+    ? list.map(it => rowOf(it)).join('')
+    : `<div class="row-item" style="cursor:default">
+         <div class="row-main"><div class="row-meta">这天没有记录</div></div>
+       </div>`;
+}
+
+$('#calPrev').addEventListener('click', () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+  renderCalendar();
+});
+$('#calNext').addEventListener('click', () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+  renderCalendar();
+});
+$('#calGrid').addEventListener('click', e => {
+  const b = e.target.closest('[data-calday]');
+  if (!b) return;
+  calSel = parseDate(b.dataset.calday);
+  renderCalendar();
+});
 
 /* 网址后面加 ?reset=1 打开，会清掉本地数据、恢复成预制的那几条。
    改过预制数据之后，用它让所有设备都看到最新版本。
@@ -1722,11 +3039,336 @@ try{
   }
 }catch(e){ /* 忽略参数解析失败 */ }
 
+/* ---------- 历史上的今天 ---------- */
+/* 固定文案，不联网。只收录了几天，没收录的日期会显示一张"空白纸" */
+const TODAY_DATA = {
+  '09-22': {
+    title: '每日视野',
+    digest: '秋分前后，昼夜差不多一样长。今天也是世界无车日。',
+    rows: [
+      {key:'节日', val:'世界无车日（World Car-Free Day）<br><span class="dim">农历八月十二</span>'},
+      {key:'生日', val:'迈克尔·法拉第（Michael Faraday，英国物理学家）<br><span class="dim">索尔·珀尔马特（Saul Perlmutter，天体物理学家）</span>'},
+      {year:'1860', text:'第二次鸦片战争：英法联军逼近北京，咸丰帝逃往避暑山庄。'},
+      {year:'1862', text:'林肯发表《解放黑人奴隶宣言》的预告。'},
+      {year:'1869', text:'瓦格纳歌剧《莱茵的黄金》在慕尼黑首演。'}
+    ]
+  },
+  '01-01': {
+    title: '每日视野',
+    digest: '新年的第一天。今天既是元旦，也是世界和平日。',
+    rows: [
+      {key:'节日', val:'元旦<br>世界和平日（World Day of Peace）'},
+      {year:'1912', text:'中华民国临时政府在南京成立，孙中山就任临时大总统。'},
+      {year:'1995', text:'世界贸易组织（WTO）正式成立。'},
+      {year:'1999', text:'欧元正式启用。'}
+    ]
+  },
+  '05-04': {
+    title: '每日视野',
+    digest: '五四青年节。这一天属于年轻人。',
+    rows: [
+      {key:'节日', val:'五四青年节'},
+      {year:'1919', text:'五四运动爆发，北京学生走上街头抗议。'},
+      {year:'1953', text:'海明威的《老人与海》获得普利策奖。'}
+    ]
+  },
+  '10-01': {
+    title: '每日视野',
+    digest: '国庆节，同时也是国际老人日。',
+    rows: [
+      {key:'节日', val:'国庆节<br>国际老人日'},
+      {year:'1949', text:'中华人民共和国成立，开国大典在天安门广场举行。'},
+      {year:'1960', text:'尼日利亚宣布独立。'}
+    ]
+  }
+};
+
+function renderToday(){
+  const t  = todayStart();
+  const y  = String(t.getFullYear());
+  const mm = String(t.getMonth() + 1).padStart(2, '0');
+  const dd = String(t.getDate()).padStart(2, '0');
+  const block = s => '<div class="flip-group">' +
+    s.split('').map(c => `<span class="flip-num">${c}</span>`).join('') + '</div>';
+
+  /* 日期翻牌：2026 , 09 , 22 */
+  $('#flipDate').innerHTML = block(y) + '<span class="flip-sep">,</span>' +
+                             block(mm) + '<span class="flip-sep">,</span>' + block(dd);
+
+  const day = TODAY_DATA[mm + '-' + dd];
+  $('#paperTitle').textContent = day ? day.title : '这一天';
+  $('#paperText').textContent  = day ? day.digest
+    : '这一天还没有收录的条目。你可以把它当成一张空白的纸，写上自己的事。';
+  $('#paperList').innerHTML = day
+    ? day.rows.map(r => r.year
+        ? `<div class="paper-row">
+             <div class="paper-year">${r.year}</div>
+             <div class="paper-val">${r.text}</div>
+           </div>`
+        : `<div class="paper-row">
+             <div class="paper-key">${r.key}</div>
+             <div class="paper-val">${r.val}</div>
+           </div>`).join('')
+    : '';
+}
+
+/* ---------- 日期计算器 ---------- */
+let calcMode = 'diff';
+
+function initCalc(){
+  const a = $('#calcA'), b = $('#calcB');
+  a.value = toISO(todayStart());
+  b.value = toISO(todayStart());
+
+  $('#calcSeg').addEventListener('click', e => {
+    const btn = e.target.closest('[data-mode]');
+    if (!btn) return;
+    calcMode = btn.dataset.mode;
+    $$('#calcSeg button').forEach(x => x.classList.toggle('active', x === btn));
+    $('#calcBField').hidden = calcMode !== 'diff';
+    $('#calcNField').hidden = calcMode !== 'add';
+    updateCalc();
+  });
+  [a, b, $('#calcN')].forEach(el => el.addEventListener('input', updateCalc));
+  updateCalc();
+}
+
+function renderCalc(){ updateCalc(); }
+
+function updateCalc(){
+  const a   = parseDate($('#calcA').value || toISO(todayStart()));
+  const big = $('#calcBig'), cap = $('#calcCap');
+
+  if (calcMode === 'diff'){
+    const b = parseDate($('#calcB').value || toISO(todayStart()));
+    const n = daysBetween(a, b);
+    big.classList.remove('date');
+    big.textContent = Math.abs(n);
+    cap.textContent = n === 0 ? '这两者是同一天'
+                    : (n > 0 ? '天 · 后面那个更晚' : '天 · 后面那个更早');
+  } else {
+    const n = Number($('#calcN').value) || 0;
+    const d = new Date(a.getFullYear(), a.getMonth(), a.getDate() + n);
+    big.classList.add('date');
+    big.textContent = (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日';
+    cap.textContent = d.getFullYear() + ' 年 · 周' + '日一二三四五六'[d.getDay()];
+  }
+}
+
+/* ---------- 里程碑 ---------- */
+function catName(id){
+  const c = CATS.filter(x => x.id === id)[0];
+  return c ? c.name : '未分类';
+}
+
+function renderMilestone(){
+  const arr = sortItems(items.filter(it => !it.archived));
+  $('#tlList').innerHTML = arr.length
+    ? arr.map(it => `<div class="tl-item ${diffDays(it) >= 0 ? 'future' : ''}">
+        <p class="tl-date">${esc(fmtMeta(occurrence(it)))} · ${esc(metaOf(it))}</p>
+        <button class="tl-card" data-edit="1" data-id="${esc(it.id)}">
+          <div class="row-ico" style="background:${hexToRgba(catColor(it.cat), .16)}">
+            ${esc(it.emoji || '📌')}
+          </div>
+          <div class="row-main">
+            <div class="row-title">${esc(it.title)}</div>
+            <div class="row-meta">${esc(catName(it.cat))}${it.note ? ' · ' + esc(it.note) : ''}</div>
+          </div>
+          <div class="row-badge">${Math.abs(diffDays(it))}</div>
+        </button>
+      </div>`).join('')
+    : EMPTY_ROW;
+}
+
+/* ---------- 事件库 ---------- */
+const LIB = [
+  {emoji:'🎂', name:'生日',     desc:'每年重复，过了自动算下一年', offset:30,  repeat:'yearly', cat:'memory'},
+  {emoji:'💖', name:'恋爱纪念日', desc:'在一起多少天了',            offset:-365, repeat:'yearly', cat:'memory'},
+  {emoji:'💍', name:'结婚纪念日', desc:'每年一次的那种日子',        offset:60,  repeat:'yearly', cat:'memory'},
+  {emoji:'📚', name:'期末考试',  desc:'考前倒计时',                offset:21,  repeat:'none',   cat:'study'},
+  {emoji:'✍️', name:'四六级',    desc:'每年两次，先记下一次',      offset:75,  repeat:'none',   cat:'study'},
+  {emoji:'🎓', name:'毕业',      desc:'离毕业还有多久',            offset:600, repeat:'none',   cat:'study'},
+  {emoji:'✈️', name:'旅行出发',  desc:'出发那天还有几天',          offset:68,  repeat:'none',   cat:'life'},
+  {emoji:'💳', name:'还信用卡',  desc:'别错过还款日',              offset:12,  repeat:'none',   cat:'life'},
+  {emoji:'💰', name:'发工资',    desc:'每月最期待的那天',          offset:9,   repeat:'none',   cat:'life'},
+  {emoji:'🧧', name:'春节',      desc:'团圆的日子',                offset:150, repeat:'yearly', cat:'life'},
+  {emoji:'🌕', name:'中秋',      desc:'回家吃月饼',                offset:3,   repeat:'yearly', cat:'life'},
+  {emoji:'🎯', name:'比赛截止',  desc:'作品要交的那天',            offset:34,  repeat:'none',   cat:'work'}
+];
+
+function renderLibrary(){
+  $('#libGrid').innerHTML = LIB.map((t, i) =>
+    `<button class="lib-card" data-lib="${i}">
+       <div class="lib-emoji">${t.emoji}</div>
+       <div class="lib-name">${t.name}</div>
+       <div class="lib-desc">${t.desc}</div>
+     </button>`).join('');
+}
+
+function addFromLibrary(i){
+  const t = LIB[i];
+  if (!t) return;
+  const d = todayStart();
+  d.setDate(d.getDate() + t.offset);
+  items.push({
+    id:uid(), title:t.name, emoji:t.emoji, date:toISO(d), cat:t.cat,
+    repeat:t.repeat, pinned:false, note:'', archived:false, remind:-1
+  });
+  saveItems();
+  renderCatMenu();
+  toast('已添加「' + t.name + '」');
+}
+
+/* ---------- 归档与隐藏 ---------- */
+function renderArchive(){
+  const arr = items.filter(it => it.archived);
+  $('#archiveList').innerHTML = arr.length
+    ? arr.map(it => `<div class="row-item" style="cursor:default">
+        <div class="row-ico">${esc(it.emoji || '📌')}</div>
+        <div class="row-main">
+          <div class="row-title" style="color:var(--muted)">${esc(it.title)}</div>
+          <div class="row-meta">${esc(fmtMeta(parseDate(it.date)))}</div>
+        </div>
+        <button class="mini-btn" data-restore="${esc(it.id)}">恢复</button>
+      </div>`).join('')
+    : `<div class="row-item" style="cursor:default">
+         <div class="row-main">
+           <div class="row-meta">还没有隐藏的日子。在编辑面板里打开「隐藏」，它就会收到这里。</div>
+         </div>
+       </div>`;
+}
+
+function restoreItem(id){
+  const it = items.filter(x => x.id === id)[0];
+  if (!it) return;
+  it.archived = false;
+  saveItems();
+  renderArchive();
+  renderCatMenu();
+  toast('已恢复到列表');
+}
+
+/* ---------- 强提醒 ---------- */
+const REMIND_OPTS = [
+  {v:-1, label:'不提醒'},
+  {v:0,  label:'当天'},
+  {v:1,  label:'提前1天'},
+  {v:3,  label:'提前3天'},
+  {v:7,  label:'提前7天'}
+];
+
+function renderRemind(){
+  const arr = sortItems(items.filter(it => !it.archived));
+  $('#remindList').innerHTML = arr.length
+    ? arr.map(it => {
+        const cur = it.remind === undefined ? -1 : it.remind;
+        return `<div class="row-item" style="cursor:default;flex-direction:column;
+                     align-items:stretch;gap:11px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="row-ico">${esc(it.emoji || '📌')}</div>
+            <div class="row-main">
+              <div class="row-title">${esc(it.title)}</div>
+              <div class="row-meta">${esc(metaOf(it))}</div>
+            </div>
+          </div>
+          <div class="remind-opts">
+            ${REMIND_OPTS.map(o =>
+              `<button data-remind="${o.v}" data-id="${esc(it.id)}"
+                 class="${cur === o.v ? 'active' : ''}">${o.label}</button>`).join('')}
+          </div>
+        </div>`;
+      }).join('')
+    : EMPTY_ROW;
+}
+
+function setRemind(id, v){
+  const it = items.filter(x => x.id === id)[0];
+  if (!it) return;
+  it.remind = v;
+  saveItems();
+  renderRemind();
+  toast(v < 0 ? '已关闭提醒' : '已设为' + (v === 0 ? '当天' : '提前 ' + v + ' 天') + '提醒');
+}
+
+/* ---------- 相册 · 纸条 ---------- */
+function renderAlbum(){
+  const arr = sortItems(items.filter(it => !it.archived));
+  $('#albumGrid').innerHTML = arr.length
+    ? arr.map(it => `<button class="album-card" data-edit="1" data-id="${esc(it.id)}">
+        <div class="album-cover" style="background:${hexToRgba(catColor(it.cat), .18)}">
+          ${esc(it.emoji || '📌')}
+        </div>
+        <div class="album-body">
+          <div class="album-name">${esc(it.title)}</div>
+          <div class="album-note">${esc(it.note || '还没有写纸条')}</div>
+        </div>
+      </button>`).join('')
+    : `<div class="row-item" style="cursor:default;grid-column:1/-1">
+         <div class="row-main"><div class="row-meta">还没有记录</div></div>
+       </div>`;
+}
+
+/* ---------- 更多 ---------- */
+function renderMore(){
+  const groups = [
+    [{ico:'📚', t:'倒数本',   go:'books',     meta:'按分类管理'},
+     {ico:'📅', t:'日历',     go:'calendar',  meta:'按月看'}],
+    [{ico:'🌏', t:'历史上的今天', go:'today'},
+     {ico:'🧮', t:'日期计算器', go:'calc'}],
+    [{ico:'🏁', t:'里程碑',   go:'milestone'},
+     {ico:'🗂️', t:'事件库',   go:'library'}],
+    [{ico:'📦', t:'归档与隐藏', go:'archive'},
+     {ico:'⏰', t:'强提醒',   go:'remind'}],
+    [{ico:'🖼️', t:'相册 · 纸条', go:'album'}]
+  ];
+  $('#moreGroups').innerHTML = groups.map(rows => {
+    const cls = rows.length > 1 ? 'group two' : 'group';
+    return `<div class="${cls}" style="margin-bottom:14px">` + rows.map(r =>
+      `<button class="row-item" data-go="${r.go}">
+         <div class="row-ico">${r.ico}</div>
+         <div class="row-main">
+           <div class="row-title">${r.t}</div>
+           ${r.meta ? `<div class="row-meta">${r.meta}</div>` : ''}
+         </div>
+         <div class="row-arrow">›</div>
+       </button>`).join('') + '</div>';
+  }).join('');
+}
+
+/* ---------- 我的 ---------- */
+function renderMe(){
+  const live = items.filter(it => !it.archived);
+  const next = sortItems(live.filter(it => diffDays(it) >= 0))[0];
+  $('#meSub').textContent = next
+    ? '最近的一个：' + next.title + '，还有 ' + diffDays(next) + ' 天'
+    : '记录每一个不想忘的日子';
+  $('#meStats').innerHTML = `
+    <div class="stat"><b>${items.length}</b><span>全部记录</span></div>
+    <div class="stat"><b>${live.length}</b><span>正在倒数</span></div>
+    <div class="stat"><b>${items.length - live.length}</b><span>已隐藏</span></div>`;
+  syncThemeSwitches();
+}
+
+/* 深浅色有两个开关（首页齿轮里的、我的页面里的），状态要一起同步 */
+function syncThemeSwitches(){
+  const dark = document.documentElement.dataset.theme === 'dark';
+  [$('#themeSwitch'), $('#themeSwitch2')].forEach(sw => {
+    if (sw) sw.setAttribute('aria-checked', dark);
+  });
+}
+
+/* ============================================================
+   14. 启动
+   ============================================================ */
+
 document.documentElement.dataset.theme = store.get(KEY_THEME) || 'light';
 items = loadItems();
 saveItems();                 // 第一次打开时把样例数据落盘
 renderCatMenu();
 render('enter');
+initRouter();                // 读地址栏决定停在哪个页面
+initLogin();                 // 没登录过就先显示登录页
+initCalc();                  // 日期计算器的初始状态
 
 /* 手机浏览器支持的话，点按钮时给一下震动反馈 */
 document.addEventListener('click', e => {

@@ -22,32 +22,33 @@ html,body{margin:0;padding:0}
 
 /* ---------- 2. 主题变量：改配色只需要动这里 ---------- */
 :root{
-  --page:#f5f5f7;          /* 页面两侧的底 */
+  --page:#f8f2f5;          /* 页面两侧的底，带一点粉 */
   --bg:#ffffff;            /* 主体背景 */
-  --card:#efefef;          /* 卡片底色 */
-  --card-hover:#e8e8ea;    /* 卡片悬停底色 */
+  --card:#efefef;          /* 卡片底色（纯色版，设置页等处用） */
+  --card-hover:#e8e8ea;
   --text:#111111;          /* 主文字 */
   --muted:#8a8a8e;         /* 次要文字 */
   --line:#e5e5ea;          /* 分隔线 */
   --accent:#d9809f;        /* 点缀色：淡粉 */
   --accent-soft:rgba(217,128,159,.14);
+  --num:#a8577a;           /* 大数字：深玫粉，衬得住不乱 */
   --danger:#d64545;
-  --shadow:0 10px 26px rgba(0,0,0,.08);
+  --shadow:0 12px 28px rgba(190,120,150,.17);
   --sheet-shadow:0 -14px 44px rgba(0,0,0,.16);
   --r-card:22px;           /* 大圆角是这套设计的关键 */
   --ease:cubic-bezier(.22,1,.36,1);   /* 苹果那种"冲出去再稳住"的缓动 */
 
   /* 下面几个是"做出厚度"用的：渐变让卡片有上下起伏，
      内高光让它看起来是浮起来的实体，而不是一块平色 */
-  --bg-grad:linear-gradient(180deg,#ffffff 0%,#fbfbfc 55%,#f6f6f8 100%);
-  --card-grad:linear-gradient(180deg,#f8f8fa 0%,#ececef 100%);
-  --card-line:rgba(255,255,255,.85);
+  --bg-grad:linear-gradient(180deg,#ffffff 0%,#fdf9fb 45%,#f9eff4 100%);
+  --card-grad:linear-gradient(180deg,#fbf7f9 0%,#f3eaef 100%);
+  --card-line:rgba(255,255,255,.9);
   --hover-brightness:.972;
-  --track:rgba(17,17,17,.07);
+  --track:rgba(217,128,159,.16);
 }
 /* 深色模式：只换变量，结构完全不动 */
 [data-theme="dark"]{
-  --page:#161618;
+  --page:#150f13;
   --bg:#000000;
   --card:#1c1c1e;
   --card-hover:#242427;
@@ -56,14 +57,15 @@ html,body{margin:0;padding:0}
   --line:#2c2c2e;
   --accent:#f0a8c4;
   --accent-soft:rgba(240,168,196,.16);
+  --num:#f4bcd2;
   --danger:#ff6961;
   --shadow:0 12px 30px rgba(0,0,0,.55);
   --sheet-shadow:0 -14px 44px rgba(0,0,0,.7);
-  --bg-grad:linear-gradient(180deg,#0b0b0c 0%,#000000 60%);
-  --card-grad:linear-gradient(180deg,#212124 0%,#191919 100%);
+  --bg-grad:linear-gradient(180deg,#150e13 0%,#000000 60%);
+  --card-grad:linear-gradient(180deg,#251a20 0%,#1a1317 100%);
   --card-line:rgba(255,255,255,.06);
   --hover-brightness:1.28;
-  --track:rgba(255,255,255,.09);
+  --track:rgba(240,168,196,.18);
 }
 
 body{
@@ -262,7 +264,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.pin-dot{flex:none;opacity:.45;display:grid;place-items:center}
+.pin-dot{flex:none;color:var(--accent);opacity:.85;display:grid;place-items:center}
 .meta{
   display:flex;
   align-items:center;
@@ -309,6 +311,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   font-weight:800;
   line-height:1;
   letter-spacing:-1.4px;
+  color:var(--num);
   font-variant-numeric:tabular-nums;   /* 数字等宽，滚动时不会左右抖 */
 }
 .unit{
@@ -391,6 +394,8 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   letter-spacing:.2px;
   animation:cardIn .5s var(--ease) backwards;
 }
+/* 右边那句"共 N 个日子"用点缀色，给顶部加一点粉 */
+#todayCount{color:var(--accent);font-weight:600}
 
 /* ---------- 7. 空状态 ---------- */
 .empty{
@@ -764,12 +769,12 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   <!-- ===== 空状态 ===== -->
   <div class="empty" id="empty">
     <svg width="86" height="86" viewBox="0 0 86 86" fill="none">
-      <rect x="12" y="18" width="62" height="56" rx="16" fill="var(--card)"/>
-      <rect x="25" y="10" width="6" height="16" rx="3" fill="var(--muted)" opacity=".45"/>
-      <rect x="55" y="10" width="6" height="16" rx="3" fill="var(--muted)" opacity=".45"/>
-      <circle cx="43" cy="48" r="12" stroke="var(--muted)" stroke-width="2.4" opacity=".5"/>
-      <path d="M43 42v6l4 3" stroke="var(--muted)" stroke-width="2.4"
-            stroke-linecap="round" opacity=".8"/>
+      <rect x="12" y="18" width="62" height="56" rx="16" fill="var(--accent-soft)"/>
+      <rect x="25" y="10" width="6" height="16" rx="3" fill="var(--accent)" opacity=".55"/>
+      <rect x="55" y="10" width="6" height="16" rx="3" fill="var(--accent)" opacity=".55"/>
+      <circle cx="43" cy="48" r="12" stroke="var(--accent)" stroke-width="2.4" opacity=".75"/>
+      <path d="M43 42v6l4 3" stroke="var(--accent)" stroke-width="2.4"
+            stroke-linecap="round" opacity=".95"/>
     </svg>
     <h3>还没有记录</h3>
     <p>点右上角的 ＋ ，<br>记下第一个你不想忘的日子</p>
@@ -897,13 +902,14 @@ const CATS = [
   {id:'work',   name:'工作'}
 ];
 
-/* 分类色：低饱和的四种，只用在 6px 的小圆点和 3px 的细线上，
-   绝不铺满卡片，不然就不像这套极简设计该有的样子 */
+/* 分类色：四档低饱和的粉，只用在 6px 的小圆点和 3px 的细线上，
+   绝不铺满卡片，不然就不像这套极简设计该有的样子。
+   想换回"一眼区分"的彩色，把下面四个值改掉就行 */
 const CAT_COLORS = {
-  study : '#4a7fb5',   // 学习 · 蓝
-  life  : '#4f9d78',   // 生活 · 绿
-  memory: '#d9809f',   // 纪念日 · 粉（跟主题点缀色一致）
-  work  : '#8b7bb8'    // 工作 · 紫
+  study : '#c09ac4',   // 学习 · 藕荷
+  life  : '#e8a3a0',   // 生活 · 蜜桃
+  memory: '#d9809f',   // 纪念日 · 玫粉（跟主题点缀色一致）
+  work  : '#bb8fa8'    // 工作 · 豆沙
 };
 function catColor(id){ return CAT_COLORS[id] || '#8a8a8e'; }
 

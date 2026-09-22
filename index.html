@@ -36,7 +36,15 @@ html,body{margin:0;padding:0}
   --shadow:0 12px 28px rgba(190,120,150,.17);
   --sheet-shadow:0 -14px 44px rgba(0,0,0,.16);
   --r-card:24px;           /* 大圆角是这套设计的关键 */
-  --ease:cubic-bezier(.22,1,.36,1);   /* 苹果那种"冲出去再稳住"的缓动 */
+
+  /* 动效只有三档时长，全页共用 —— 节奏统一才显得讲究 */
+  --t-press:150ms;         /* 按下这类即时反馈 */
+  --t-small:280ms;         /* 悬停、开关、圆点这类小变化 */
+  --t-big:420ms;           /* 面板、入场、补位这类大结构 */
+  --t-count:700ms;         /* 数字滚动，单独一档，故意慢一点 */
+  --t-bar:800ms;           /* 进度线生长 */
+  --ease:cubic-bezier(.22,1,.36,1);       /* 通用：冲出去再稳住 */
+  --ease-panel:cubic-bezier(.32,.72,0,1); /* iPhone 上滑面板的真实曲线 */
 
   /* 下面几个是"做出厚度"用的：渐变让卡片有上下起伏，
      内高光让它看起来是浮起来的实体，而不是一块平色 */
@@ -90,8 +98,8 @@ body{
 }
 /* 深浅色切换时颜色平滑过渡 */
 body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
-  transition:background-color .3s var(--ease),color .3s var(--ease),
-             border-color .3s var(--ease);
+  transition:background-color var(--t-small) var(--ease),color var(--t-small) var(--ease),
+             border-color var(--t-small) var(--ease);
 }
 
 /* ---------- 3. 手机屏容器：宽屏时居中成一条手机宽度 ---------- */
@@ -138,7 +146,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   background:var(--bg);
   /* 滚动后才出现的细分割线，由 JS 加 .scrolled */
   box-shadow:0 0 0 0 transparent;
-  transition:box-shadow .3s var(--ease);
+  transition:box-shadow var(--t-small) var(--ease);
 }
 .topbar.scrolled{box-shadow:0 1px 0 var(--line)}
 
@@ -157,7 +165,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   letter-spacing:-.5px;
   cursor:pointer;
   border-radius:12px;
-  transition:transform .2s var(--ease),opacity .2s var(--ease);
+  transition:transform var(--t-press) var(--ease),opacity var(--t-press) var(--ease);
 }
 .cat-btn:active{transform:scale(.96);opacity:.7}
 .cat-btn svg{opacity:.35;margin-top:2px}
@@ -174,7 +182,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   background:transparent;
   color:var(--text);
   cursor:pointer;
-  transition:background-color .2s var(--ease),transform .18s var(--ease);
+  transition:background-color var(--t-press) var(--ease),transform var(--t-press) var(--ease);
 }
 .icon-btn:hover{background:var(--accent-soft)}
 .icon-btn:active{transform:scale(.9)}
@@ -201,7 +209,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   transform-origin:top left;
   opacity:0;
   pointer-events:none;
-  transition:transform .26s var(--ease),opacity .2s var(--ease);
+  transition:transform var(--t-small) var(--ease-panel),opacity var(--t-press) var(--ease);
 }
 .cat-menu.open{
   transform:scale(1) translateY(0);
@@ -223,7 +231,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   font-size:15px;
   text-align:left;
   cursor:pointer;
-  transition:background-color .18s var(--ease);
+  transition:background-color var(--t-press) var(--ease);
 }
 .cat-item:hover{background:var(--card)}
 .cat-item .count{font-size:13px;color:var(--muted)}
@@ -235,7 +243,10 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   flex-direction:column;
   gap:14px;
   padding:6px 16px 56px;
+  /* 切换分类时整块淡出淡入，不硬切 */
+  transition:opacity var(--t-press) ease;
 }
+.list.fading{opacity:0}
 
 /* 一张卡片：左边 emoji，中间文字，右边大数字 */
 .card{
@@ -249,26 +260,34 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
     0 0 0 .5px var(--card-edge),
     var(--card-shadow);
   cursor:pointer;
-  transition:transform .25s var(--ease),box-shadow .25s var(--ease),
-             filter .25s var(--ease);
+  transition:transform var(--t-small) var(--ease),
+             box-shadow var(--t-small) var(--ease),
+             filter var(--t-small) var(--ease);
 }
 /* 卡片第一行：emoji + 文字 + 数字 */
 .card > .row{display:flex;align-items:center;gap:15px}
 
 /* 进场动画：淡入 + 轻微上移。用 backwards 而不是 both，
    动画结束后不残留 transform，否则会盖住 hover 的位移 */
-.card.enter{animation:cardIn .44s var(--ease) backwards}
+.card.enter{animation:cardIn var(--t-big) var(--ease) backwards}
 @keyframes cardIn{
   from{opacity:0;transform:translateY(14px) scale(.98)}
   to{opacity:1;transform:none}
 }
 /* 删除时的滑出动画 */
 .card.out{
-  animation:cardOut .26s ease-in forwards;
+  animation:cardOut var(--t-small) ease-in forwards;
   pointer-events:none;
 }
 @keyframes cardOut{
   to{opacity:0;transform:translateX(36px) scale(.96)}
+}
+
+/* 删除时留在原位的"影子"，只负责把滑出动画播完 */
+.card.ghost{
+  position:absolute;
+  z-index:5;
+  pointer-events:none;
 }
 
 /* emoji 不再是散着的一颗字符，而是规整的圆角图标位，
@@ -282,6 +301,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   border-radius:15px;
   font-size:22px;
   line-height:1;
+  transition:transform var(--t-small) var(--ease);
 }
 .info{flex:1;min-width:0}          /* min-width:0 让长标题能正确省略 */
 .title{
@@ -331,7 +351,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   height:100%;
   border-radius:2px;
   opacity:.6;                /* 退到背景里，别抢数字的戏 */
-  transition:width .7s var(--ease);
+  transition:width var(--t-bar) var(--ease);
 }
 
 /* 右侧数字块 */
@@ -339,7 +359,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   flex:none;
   margin-left:auto;
   text-align:right;
-  transition:transform .26s var(--ease),opacity .2s var(--ease);
+  transition:transform var(--t-small) var(--ease),opacity var(--t-small) var(--ease);
 }
 .num{
   font-size:31px;
@@ -366,7 +386,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   opacity:0;
   pointer-events:none;
   transform:translateY(-50%) scale(.9);
-  transition:opacity .22s var(--ease),transform .22s var(--ease);
+  transition:opacity var(--t-small) var(--ease),transform var(--t-small) var(--ease);
 }
 /* 只在真有鼠标的设备上启用悬停，触屏设备走点击编辑面板 */
 @media (hover:hover) and (pointer:fine){
@@ -379,8 +399,27 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
       0 0 0 .5px var(--card-edge),
       var(--card-shadow-hover);
   }
-  .card:hover .right{opacity:0;transform:translateX(-10px)}
-  .card:hover .actions{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1)}
+  /* 四个动作错开：卡片抬 → emoji 放大 → 数字让位 → 按钮出现。
+     一起动就没有层次了，这是"精致"和"能用"的区别 */
+  .card:hover .emoji{transform:scale(1.05);transition-delay:60ms}
+  .card:hover .right{opacity:0;transform:translateX(6px);transition-delay:90ms}
+  .card:hover .actions{
+    opacity:1;
+    pointer-events:auto;
+    transform:translateY(-50%) scale(1);
+    transition-delay:150ms;
+  }
+}
+
+/* 点下去的那一下：卡片轻轻压扁、阴影收一层，给手指一个交代。
+   放在 hover 规则后面，这样悬停时点击也能看得见反应 */
+.card.press{
+  transform:scale(.982);
+  box-shadow:
+    inset 0 .5px 0 var(--card-line),
+    0 0 0 .5px var(--card-edge),
+    0 2px 6px -4px rgba(190,120,150,.45);
+  transition-duration:var(--t-press);
 }
 .card:active{transform:scale(.985)}
 .mini{
@@ -394,7 +433,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   color:var(--text);
   cursor:pointer;
   box-shadow:0 2px 6px rgba(0,0,0,.06);
-  transition:transform .18s var(--ease),color .2s var(--ease);
+  transition:transform var(--t-press) var(--ease),color var(--t-press) var(--ease);
 }
 .mini:hover{color:var(--accent);transform:scale(1.06)}
 .mini.del:hover{color:var(--danger)}
@@ -457,7 +496,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   background:rgba(0,0,0,.32);
   opacity:0;
   pointer-events:none;
-  transition:opacity .28s var(--ease);
+  transition:opacity var(--t-small) var(--ease);
   -webkit-backdrop-filter:blur(2px);
   backdrop-filter:blur(2px);
 }
@@ -478,7 +517,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   box-shadow:var(--sheet-shadow);
   /* 收起状态：整体滑到屏幕外 */
   transform:translateX(-50%) translateY(101%);
-  transition:transform .4s var(--ease);
+  transition:transform var(--t-big) var(--ease-panel);
 }
 .sheet.open{transform:translateX(-50%) translateY(0)}
 /* 面板顶部的小横条，暗示可以往下拖 */
@@ -507,7 +546,8 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   padding:6px 4px;
   cursor:pointer;
   border-radius:9px;
-  transition:color .2s var(--ease),transform .16s var(--ease),opacity .2s var(--ease);
+  transition:color var(--t-press) var(--ease),transform var(--t-press) var(--ease),
+             opacity var(--t-press) var(--ease);
 }
 .text-btn:active{transform:scale(.94)}
 .text-btn.primary{color:var(--accent);font-weight:600}
@@ -546,7 +586,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   font:inherit;
   font-size:16px;
   outline:none;
-  transition:border-color .2s var(--ease),background-color .2s var(--ease);
+  transition:border-color var(--t-press) var(--ease),background-color var(--t-press) var(--ease);
 }
 .input:focus{border-color:var(--accent)}
 .input::placeholder{color:var(--muted)}
@@ -572,7 +612,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   background:var(--card);
   font-size:21px;
   cursor:pointer;
-  transition:transform .18s var(--ease),border-color .2s var(--ease);
+  transition:transform var(--t-press) var(--ease),border-color var(--t-press) var(--ease);
 }
 .emoji-opt:hover{transform:translateY(-2px)}
 .emoji-opt.active{border-color:var(--accent);background:var(--accent-soft)}
@@ -587,8 +627,8 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   font:inherit;
   font-size:14px;
   cursor:pointer;
-  transition:transform .18s var(--ease),border-color .2s var(--ease),
-             background-color .2s var(--ease);
+  transition:transform var(--t-press) var(--ease),border-color var(--t-press) var(--ease),
+             background-color var(--t-press) var(--ease);
 }
 .chip:active{transform:scale(.95)}
 .chip.active{
@@ -609,7 +649,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   background:var(--card);
   cursor:pointer;
   padding:0;
-  transition:background-color .26s var(--ease);
+  transition:background-color var(--t-small) var(--ease);
 }
 .switch i{
   position:absolute;
@@ -620,7 +660,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   border-radius:50%;
   background:#fff;
   box-shadow:0 2px 5px rgba(0,0,0,.2);
-  transition:transform .3s var(--ease);
+  transition:transform var(--t-small) var(--ease);
 }
 .switch[aria-checked="true"]{background:var(--accent)}
 .switch[aria-checked="true"] i{transform:translateX(21px)}
@@ -637,7 +677,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   font-size:15px;
   font-weight:600;
   cursor:pointer;
-  transition:transform .18s var(--ease),opacity .2s var(--ease);
+  transition:transform var(--t-press) var(--ease),opacity var(--t-press) var(--ease);
 }
 .danger-btn:active{transform:scale(.985)}
 
@@ -684,7 +724,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   background:rgba(0,0,0,.32);
   opacity:0;
   pointer-events:none;
-  transition:opacity .24s var(--ease);
+  transition:opacity var(--t-small) var(--ease);
 }
 .dialog.open{opacity:1;pointer-events:auto}
 .dialog-box{
@@ -696,7 +736,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   text-align:center;
   /* 弹窗本身也做一个小缩放进场 */
   transform:scale(.94);
-  transition:transform .3s var(--ease);
+  transition:transform var(--t-small) var(--ease-panel);
 }
 .dialog.open .dialog-box{transform:scale(1)}
 .dialog-box h4{margin:0;font-size:17px;font-weight:650}
@@ -713,7 +753,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   font-size:15px;
   font-weight:600;
   cursor:pointer;
-  transition:transform .16s var(--ease);
+  transition:transform var(--t-press) var(--ease);
 }
 .dialog-actions button:active{transform:scale(.96)}
 .dialog-actions .ok{background:var(--danger);color:#fff}
@@ -735,7 +775,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   opacity:0;
   pointer-events:none;
   transform:translate(-50%,-16px) scale(.95);
-  transition:opacity .26s var(--ease),transform .3s var(--ease);
+  transition:opacity var(--t-small) var(--ease),transform var(--t-small) var(--ease);
 }
 .toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
 
@@ -1135,14 +1175,16 @@ const ICON_TRASH = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" 
   <path d="M4 7h16"/><path d="M9.5 7V4.8h5V7"/>
   <path d="M6.4 7l.9 12.2h9.4L17.6 7"/></svg>`;
 
-/* 一个卡片在 HTML 里长什么样 —— 列表和"实时预览"共用这一段 */
-function cardHTML(item){
+/* 一个卡片在 HTML 里长什么样 —— 列表和"实时预览"共用这一段。
+   grow 为 true 时，进度线先渲染成 0 宽，插进页面后再长出来 */
+function cardHTML(item, grow){
   const d    = occurrence(item);
   const n    = daysBetween(todayStart(), d);
   const unit = n > 0 ? '天后' : (n < 0 ? '天前' : '今天');
   const meta = [fmtMeta(d)];
   if (item.repeat === 'yearly') meta.push('每年');
   const color = catColor(item.cat);
+  const pct   = progressOf(n);
 
   return `<article class="card" data-id="${esc(item.id)}">
     <div class="row">
@@ -1162,7 +1204,9 @@ function cardHTML(item){
         <div class="unit">${unit}</div>
       </div>
     </div>
-    <div class="bar"><i style="width:${progressOf(n)}%;background:${color}"></i></div>
+    <div class="bar">
+      <i data-w="${pct}" style="width:${grow ? 0 : pct}%;background:${color}"></i>
+    </div>
     <div class="actions">
       <button class="mini" data-act="pin" title="置顶" aria-label="置顶">${ICON_PIN}</button>
       <button class="mini del" data-act="del" title="删除" aria-label="删除">${ICON_TRASH}</button>
@@ -1170,38 +1214,68 @@ function cardHTML(item){
   </article>`;
 }
 
-/* 数字从 0 滚到目标值 */
-function countUp(el, to){
-  const dur = 600, t0 = performance.now();
+/* 数字从 0 滚到目标值。
+   delay 让每张卡片的数字在卡片自己落位之后才开始滚，形成先后节奏 */
+function countUp(el, to, delay){
+  const dur = 700;
+  const start = delay || 0;
+  let t0 = null;
   function step(t){
+    if (t0 === null) t0 = t;
     const p = Math.min(1, (t - t0) / dur);
-    const eased = 1 - Math.pow(1 - p, 3);        // 先快后慢
+    const eased = 1 - Math.pow(1 - p, 4);   // 收尾拖得长一点，数字"停"得住
     el.textContent = Math.round(to * eased);
     if (p < 1) requestAnimationFrame(step);
   }
-  requestAnimationFrame(step);
+  setTimeout(() => requestAnimationFrame(step), start);
+
+  /* 兜底：浏览器在后台会停掉动画帧，那样数字就永远停在 0 了。
+     到点无论如何把最终值填上，保证显示的数字一定是对的 */
+  setTimeout(() => { el.textContent = to; }, start + dur + 150);
 }
-function hydrateNumbers(root, animate){
-  $$('.num', root).forEach(el => {
+function hydrateNumbers(root, animate, baseDelay){
+  $$('.num', root).forEach((el, i) => {
     const to = Number(el.dataset.n) || 0;
-    if (animate && !reduceMotion) countUp(el, to);
+    if (animate && !reduceMotion) countUp(el, to, (baseDelay || 0) + i * 45);
     else el.textContent = to;
   });
 }
+/* 进度线从 0 长到目标宽度，跟着卡片一起错开 */
+function growBars(root, animate, baseDelay){
+  $$('.bar > i', root).forEach((el, i) => {
+    const w = el.dataset.w;
+    if (!animate || reduceMotion){ el.style.width = w + '%'; return; }
+    setTimeout(() => { el.style.width = w + '%'; }, (baseDelay || 0) + i * 45);
+  });
+}
 
-/* mode: 'enter' 逐个进场 ｜ 'flip' 只做位置变化的补间 ｜ 'none' 直接铺上 */
-function render(mode = 'enter'){
+/* 记下当前每张卡片的位置，给 FLIP 补间用。
+   exceptEl 是要排除的那张（删除时它马上就没了） */
+function captureRects(exceptEl){
+  const map = new Map();
+  $$('.card', listEl).forEach(c => {
+    if (c !== exceptEl && !c.classList.contains('ghost')) {
+      map.set(c.dataset.id, c.getBoundingClientRect());
+    }
+  });
+  return map;
+}
+
+/* mode: 'enter' 逐个进场 ｜ 'flip' 只做位置变化的补间 ｜ 'none' 直接铺上
+   rectsBefore 可以复用外面提前量好的位置（删除时用） */
+function render(mode = 'enter', rectsBefore){
   listEl.classList.toggle('grid', curView === 'grid');
 
   const visible = sortItems(items.filter(it => curCat === 'all' || it.cat === curCat));
 
   /* FLIP 动画第一步：先把每张卡片"现在的位置"记下来 */
-  const before = new Map();
-  if (mode === 'flip'){
+  const before = rectsBefore || new Map();
+  if (mode === 'flip' && !rectsBefore){
     $$('.card', listEl).forEach(c => before.set(c.dataset.id, c.getBoundingClientRect()));
   }
 
-  listEl.innerHTML = visible.map(cardHTML).join('');
+  const animateIn = mode === 'enter' && !reduceMotion;
+  listEl.innerHTML = visible.map(it => cardHTML(it, animateIn)).join('');
 
   if (mode === 'enter'){
     $$('.card', listEl).forEach((c, i) => {
@@ -1228,7 +1302,8 @@ function render(mode = 'enter'){
     });
   }
 
-  hydrateNumbers(listEl, mode === 'enter');
+  hydrateNumbers(listEl, mode === 'enter', 240);
+  growBars(listEl, mode === 'enter', 300);
   emptyEl.classList.toggle('show', visible.length === 0);
 
   /* 顶部信息条：今天的日期 + 一共记了几个日子 */
@@ -1348,7 +1423,7 @@ function updatePreview(){
   previewEl.innerHTML = cardHTML({
     id:'preview', title:draft.title, emoji:draft.emoji, date:draft.date,
     cat:draft.cat, repeat:draft.repeat, pinned:draft.pinned
-  });
+  }, false);
   hydrateNumbers(previewEl, false);
 }
 /* 标题和日期都填了才让点保存 */
@@ -1425,24 +1500,44 @@ function togglePin(id){
   render('flip');
 }
 
-/* 先播放滑出动画，动画结束再真正删数据 */
+/* 删除：真身立刻离场、后面的卡片马上补位；要删的那张
+   留一个"影子"钉在原地把滑出动画播完 —— 两个动作重叠，不拖沓 */
 function removeItem(id, cardEl){
   const it = items.find(x => x.id === id);
-  const doRemove = () => {
+  askConfirm('删除这条记录？', `「${it ? it.title : ''}」删除后无法恢复。`, '删除', () => {
     const card = cardEl || $(`.card[data-id="${id}"]`, listEl);
-    const finish = () => {
-      items = items.filter(x => x.id !== id);
-      saveItems();
-      render('flip');
-      renderCatMenu();
-      toast('已删除');
-    };
+
+    /* 1) 先量好其它卡片的位置，一会儿补位要用 */
+    const before = captureRects(card);
+
+    /* 2) 克隆一个影子，钉在这张卡片原来的位置上 */
+    let ghost = null;
     if (card && !reduceMotion){
-      card.classList.add('out');
-      setTimeout(finish, 240);
-    } else finish();
-  };
-  askConfirm('删除这条记录？', `「${it ? it.title : ''}」删除后无法恢复。`, '删除', doRemove);
+      const phoneEl   = $('.phone');
+      const phoneRect = phoneEl.getBoundingClientRect();
+      const r         = card.getBoundingClientRect();
+      ghost = card.cloneNode(true);
+      ghost.classList.add('ghost');
+      ghost.style.left  = (r.left - phoneRect.left) + 'px';
+      ghost.style.top   = (r.top  - phoneRect.top)  + 'px';
+      ghost.style.width = r.width + 'px';
+      phoneEl.appendChild(ghost);
+    }
+
+    /* 3) 数据先改，真身立刻移除 —— 后面那些卡片这一瞬间就归位了 */
+    items = items.filter(x => x.id !== id);
+    saveItems();
+    if (card) card.remove();
+    render('flip', before);      /* 用刚才量好的位置做补间，平滑滑上去 */
+    renderCatMenu();
+    toast('已删除');
+
+    /* 4) 影子继续往外滑，滑完自己消失 */
+    if (ghost){
+      requestAnimationFrame(() => ghost.classList.add('out'));
+      setTimeout(() => ghost.remove(), 380);
+    }
+  });
 }
 
 /* ============================================================
@@ -1461,8 +1556,17 @@ listEl.addEventListener('click', e => {
     else removeItem(id, card);
     return;
   }
+  /* 点下去的那一下：先让卡片压一下，面板随后才升起来 */
+  pressCard(card);
   openEditor(id);
 });
+
+/* 给卡片加一下"被按下"的状态，150ms 后撤掉 */
+function pressCard(card){
+  if (reduceMotion) return;
+  card.classList.add('press');
+  setTimeout(() => card.classList.remove('press'), 170);
+}
 
 /* 顶部：新增 / 切换视图 / 设置 / 分类 */
 $('#addBtn').addEventListener('click', () => openEditor(null));
@@ -1476,11 +1580,22 @@ $('#catBtn').addEventListener('click', e => { e.stopPropagation(); toggleCatMenu
 catMenuEl.addEventListener('click', e => {
   const btn = e.target.closest('[data-cat]');
   if (!btn) return;
-  curCat = btn.dataset.cat;
+  switchCat(btn.dataset.cat);
+});
+/* 切分类：旧列表先快速淡出（150ms），换完内容再淡入，
+   比直接硬切舒服得多 */
+function switchCat(id){
+  if (id === curCat){ toggleCatMenu(false); return; }
+  curCat = id;
   renderCatMenu();
   toggleCatMenu(false);
-  render('enter');
-});
+  if (reduceMotion){ render('enter'); return; }
+  listEl.classList.add('fading');
+  setTimeout(() => {
+    render('enter');
+    listEl.classList.remove('fading');
+  }, 150);
+}
 /* 点空白处收起下拉 */
 document.addEventListener('click', e => {
   if (!catMenuEl.contains(e.target)) toggleCatMenu(false);

@@ -965,12 +965,9 @@ function seedItems(){
   const offset = n => { const d = todayStart(); d.setDate(d.getDate() + n); return toISO(d); };
   const list = [
     {id:uid(), title:'和老公相识', emoji:'💑', date:'2024-05-04',cat:'memory', repeat:'none',   pinned:false},
-    {id:uid(), title:'朋友生日',   emoji:'🎁', date:offset(6),   cat:'memory', repeat:'yearly', pinned:true},
-    {id:uid(), title:'期末考试',   emoji:'📚', date:offset(18),  cat:'study',  repeat:'none',   pinned:false},
-    {id:uid(), title:'生日派对',   emoji:'🎂', date:offset(31),  cat:'life',   repeat:'yearly', pinned:false},
+    {id:uid(), title:'生日',       emoji:'🎂', date:offset(6),   cat:'memory', repeat:'yearly', pinned:true},
     {id:uid(), title:'旅行计划',   emoji:'✈️', date:offset(68),  cat:'life',   repeat:'none',   pinned:false},
-    {id:uid(), title:'开学',       emoji:'🎓', date:offset(-22), cat:'study',  repeat:'none',   pinned:false},
-    {id:uid(), title:'在一起',     emoji:'💖', date:offset(-365),cat:'memory', repeat:'yearly', pinned:false}
+    {id:uid(), title:'开学',       emoji:'🎓', date:offset(-22), cat:'study',  repeat:'none',   pinned:false}
   ];
   return list;
 }

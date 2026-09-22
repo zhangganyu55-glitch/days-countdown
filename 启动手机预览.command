@@ -8,9 +8,12 @@
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# 把页面复制成 index.html，这样地址栏里不用输中文文件名
+# 把页面复制成 index.html，这样地址栏里不用输中文文件名。
+# 仓库里这份文件叫 index.html，任务目录里那份叫 倒数日.html，两个名字都认
 SERVE_DIR="$(mktemp -d)"
-cp "$HERE/倒数日.html" "$SERVE_DIR/index.html"
+SRC="$HERE/index.html"
+[ -f "$HERE/倒数日.html" ] && SRC="$HERE/倒数日.html"
+cp "$SRC" "$SERVE_DIR/index.html"
 
 # 找本机在局域网里的地址
 IP="$(ipconfig getifaddr en0 2>/dev/null)"

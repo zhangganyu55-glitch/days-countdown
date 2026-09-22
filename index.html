@@ -35,7 +35,7 @@ html,body{margin:0;padding:0}
   --danger:#d64545;
   --shadow:0 12px 28px rgba(190,120,150,.17);
   --sheet-shadow:0 -14px 44px rgba(0,0,0,.16);
-  --r-card:22px;           /* 大圆角是这套设计的关键 */
+  --r-card:24px;           /* 大圆角是这套设计的关键 */
   --ease:cubic-bezier(.22,1,.36,1);   /* 苹果那种"冲出去再稳住"的缓动 */
 
   /* 下面几个是"做出厚度"用的：渐变让卡片有上下起伏，
@@ -44,7 +44,13 @@ html,body{margin:0;padding:0}
   --card-grad:linear-gradient(180deg,#fbf7f9 0%,#f3eaef 100%);
   --card-line:rgba(255,255,255,.9);
   --hover-brightness:.972;
-  --track:rgba(217,128,159,.16);
+  --track:rgba(217,128,159,.12);
+  /* 双层阴影 + 半像素描边：近处一层锐利、远处一层柔和，
+     这是"精致"最省事也最有效的做法 */
+  --card-edge:rgba(190,120,150,.10);
+  --card-shadow:0 .5px 1px rgba(120,80,100,.05), 0 10px 22px -12px rgba(190,120,150,.35);
+  --card-shadow-hover:0 2px 4px rgba(120,80,100,.05), 0 18px 34px -14px rgba(190,120,150,.5);
+  --glow:rgba(217,128,159,.16);   /* 顶部那层粉色光晕 */
 }
 /* 深色模式：只换变量，结构完全不动 */
 [data-theme="dark"]{
@@ -65,7 +71,11 @@ html,body{margin:0;padding:0}
   --card-grad:linear-gradient(180deg,#251a20 0%,#1a1317 100%);
   --card-line:rgba(255,255,255,.06);
   --hover-brightness:1.28;
-  --track:rgba(240,168,196,.18);
+  --track:rgba(240,168,196,.14);
+  --card-edge:rgba(255,255,255,.05);
+  --card-shadow:0 .5px 1px rgba(0,0,0,.4), 0 12px 24px -14px rgba(0,0,0,.9);
+  --card-shadow-hover:0 2px 6px rgba(0,0,0,.45), 0 20px 38px -16px rgba(0,0,0,1);
+  --glow:rgba(240,168,196,.11);
 }
 
 body{
@@ -91,6 +101,20 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   max-width:430px;
   min-height:100dvh;
   background:var(--bg-grad);
+  /* isolation 让下面那层光晕只待在这个容器里，不会跑到内容前面 */
+  isolation:isolate;
+}
+/* 顶部一层几乎看不见的粉色光晕，避免背景死平 */
+.phone::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:280px;
+  z-index:-1;
+  pointer-events:none;
+  background:radial-gradient(115% 100% at 50% 0%,var(--glow) 0%,rgba(255,255,255,0) 68%);
 }
 /* 电脑上打开时，左右描一条极淡的边，看起来像一整块手机屏 */
 @media (min-width:520px){
@@ -209,24 +233,27 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
 .list{
   display:flex;
   flex-direction:column;
-  gap:12px;
-  padding:6px 16px 48px;
+  gap:14px;
+  padding:6px 16px 56px;
 }
 
 /* 一张卡片：左边 emoji，中间文字，右边大数字 */
 .card{
   position:relative;
-  padding:15px 20px 14px;
+  padding:17px 20px 16px;
   border-radius:var(--r-card);
   background:var(--card-grad);
-  /* 一层内高光 + 一层几乎看不见的外阴影 = 卡片有厚度 */
-  box-shadow:inset 0 1px 0 var(--card-line), 0 1px 2px rgba(0,0,0,.025);
+  /* 内高光 + 半像素描边 + 双层外阴影 = 卡片有厚度、边缘利落 */
+  box-shadow:
+    inset 0 .5px 0 var(--card-line),
+    0 0 0 .5px var(--card-edge),
+    var(--card-shadow);
   cursor:pointer;
   transition:transform .25s var(--ease),box-shadow .25s var(--ease),
              filter .25s var(--ease);
 }
 /* 卡片第一行：emoji + 文字 + 数字 */
-.card > .row{display:flex;align-items:center;gap:14px}
+.card > .row{display:flex;align-items:center;gap:15px}
 
 /* 进场动画：淡入 + 轻微上移。用 backwards 而不是 both，
    动画结束后不残留 transform，否则会盖住 hover 的位移 */
@@ -244,12 +271,17 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   to{opacity:0;transform:translateX(36px) scale(.96)}
 }
 
+/* emoji 不再是散着的一颗字符，而是规整的圆角图标位，
+   底色由 JS 按分类色淡化成 10% 的透明色填进来 */
 .emoji{
   flex:none;
-  width:34px;
-  font-size:27px;
+  display:grid;
+  place-items:center;
+  width:44px;
+  height:44px;
+  border-radius:15px;
+  font-size:22px;
   line-height:1;
-  text-align:center;
 }
 .info{flex:1;min-width:0}          /* min-width:0 让长标题能正确省略 */
 .title{
@@ -257,9 +289,10 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   align-items:center;
   gap:6px;
   margin:0;
-  font-size:17px;
-  font-weight:650;
-  letter-spacing:-.2px;
+  /* 轻而大比粗而小显贵：字重降下来，字号抬上去 */
+  font-size:17.5px;
+  font-weight:600;
+  letter-spacing:-.25px;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
@@ -269,10 +302,11 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   display:flex;
   align-items:center;
   gap:6px;
-  margin:5px 0 0;
-  font-size:14px;
+  margin:6px 0 0;
+  font-size:13.5px;
   color:var(--muted);
   white-space:nowrap;
+  letter-spacing:.3px;      /* 小字加一点字距，更透气 */
 }
 .meta > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* 分类色点：整套设计里唯一的彩色，只有 6px */
@@ -286,8 +320,8 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
 /* 底部这条 3px 的细线是"时间推进条"：
    还没到的日子越接近越满，已经过去的日子走得越久越满 */
 .bar{
-  height:3px;
-  margin-top:13px;
+  height:2px;
+  margin-top:12px;
   border-radius:2px;
   background:var(--track);
   overflow:hidden;
@@ -296,6 +330,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   display:block;
   height:100%;
   border-radius:2px;
+  opacity:.6;                /* 退到背景里，别抢数字的戏 */
   transition:width .7s var(--ease);
 }
 
@@ -307,18 +342,18 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   transition:transform .26s var(--ease),opacity .2s var(--ease);
 }
 .num{
-  font-size:33px;
+  font-size:31px;
   font-weight:800;
   line-height:1;
-  letter-spacing:-1.4px;
+  letter-spacing:-1px;
   color:var(--num);
   font-variant-numeric:tabular-nums;   /* 数字等宽，滚动时不会左右抖 */
 }
 .unit{
-  margin-top:5px;
+  margin-top:6px;
   font-size:12px;
   color:var(--muted);
-  letter-spacing:.2px;
+  letter-spacing:.7px;
 }
 
 /* 悬停时浮出的两个小操作按钮（置顶 / 删除） */
@@ -339,7 +374,10 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
     /* 用亮度而不是换背景色，这样悬停有过渡、不会"啪"地跳一下 */
     filter:brightness(var(--hover-brightness));
     transform:translateY(-2px);
-    box-shadow:inset 0 1px 0 var(--card-line), var(--shadow);
+    box-shadow:
+      inset 0 .5px 0 var(--card-line),
+      0 0 0 .5px var(--card-edge),
+      var(--card-shadow-hover);
   }
   .card:hover .right{opacity:0;transform:translateX(-10px)}
   .card:hover .actions{opacity:1;pointer-events:auto;transform:translateY(-50%) scale(1)}
@@ -374,7 +412,7 @@ body,.phone,.card,.sheet,.input,.chip,.switch,.icon-btn{
   gap:10px;
   min-height:104px;
 }
-.list.grid .emoji{font-size:26px}
+.list.grid .emoji{width:40px;height:40px;font-size:20px;border-radius:14px}
 .list.grid .info{width:100%}
 .list.grid .title{font-size:15px}
 .list.grid .meta{font-size:12px}
@@ -913,6 +951,14 @@ const CAT_COLORS = {
 };
 function catColor(id){ return CAT_COLORS[id] || '#8a8a8e'; }
 
+/* 把 #rrggbb 变成带透明度的 rgba()。
+   用途：给 emoji 的底托上一层很淡的分类色（10% 透明度），
+   同一个色既要浓（小圆点）又要淡（底托），靠这个换算 */
+function hexToRgba(hex, alpha){
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
 /* 预设 emoji，想换随时改这一行 */
 const EMOJIS = ['🎁','💖','🎂','✈️','📚','🏠','🎓','💼','🎮','🐱',
                 '☕','🌙','⭐','🍰','🎸','📝','🏆','🎉','🩺','🧧'];
@@ -1100,7 +1146,7 @@ function cardHTML(item){
 
   return `<article class="card" data-id="${esc(item.id)}">
     <div class="row">
-      <div class="emoji">${esc(item.emoji || '📌')}</div>
+      <div class="emoji" style="background:${hexToRgba(color, .1)}">${esc(item.emoji || '📌')}</div>
       <div class="info">
         <h3 class="title">
           ${item.pinned ? `<span class="pin-dot">${PIN_SVG}</span>` : ''}

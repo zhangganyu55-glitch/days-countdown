@@ -1444,6 +1444,16 @@ window.addEventListener('scroll', () => {
    12. 启动
    ============================================================ */
 
+/* 网址后面加 ?reset=1 打开，会清掉本地数据、恢复成预制的那几条。
+   改过预制数据之后，用它让所有设备都看到最新版本。
+   用完把地址栏里的参数抹掉，免得每次刷新都清一次 */
+try{
+  if (new URLSearchParams(location.search).get('reset') === '1'){
+    store.set(KEY_DATA, '');
+    try{ history.replaceState(null, '', location.pathname); }catch(e){ /* file:// 下忽略 */ }
+  }
+}catch(e){ /* 忽略参数解析失败 */ }
+
 document.documentElement.dataset.theme = store.get(KEY_THEME) || 'light';
 items = loadItems();
 saveItems();                 // 第一次打开时把样例数据落盘
